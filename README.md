@@ -1,1 +1,47 @@
-# WOOWANGTHON_TEAM_17_AI
+# 충북 여행 AI 파서
+
+자유 입력 여행 메모와 고정 여행 조건을 받아 장소 검색 전 확인용 미리보기를 만드는 Python 패키지입니다. Gemini 응답은 `pending_review` 상태로 반환하며, 사용자 확인과 장소 검색·점수화는 이 패키지의 범위에 포함되지 않습니다.
+
+## 설치
+
+Python 3.12 이상을 사용합니다.
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e .
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+AI 저장소 루트의 `.env`에 Google AI Studio 키를 입력합니다. `GEMINI_MODEL` 기본값은 `gemini-3.5-flash-lite`이며, 프로세스 환경변수의 `GEMINI_API_KEY`와 `GEMINI_MODEL`이 AI 저장소 `.env` 값보다 우선합니다. 이 패키지는 `.env` 전체를 프로세스 환경에 주입하지 않습니다.
+
+## CLI
+
+JSON 파일을 지정하거나 stdin으로 JSON을 전달할 수 있습니다.
+
+```powershell
+chungbuk-trip-preview .\examples\trip_input.json
+Get-Content .\examples\trip_input.json -Raw | chungbuk-trip-preview
+```
+
+입력에는 `dates.start`, `dates.end`, `transport`, `total_budget_won`, `departure.time`, `departure.region`, `headcount`, `preferences_text`가 필요합니다. `headcount`는 모임방에서 확정된 인원입니다. 출력은 추출 결과와 고정 조건을 포함한 미확정 미리보기입니다.
+
+## 백엔드 연결
+
+백엔드 개발환경에서는 이 패키지를 editable dependency로 설치합니다.
+
+```powershell
+python -m pip install -e ..\WOOWANGTHON_TEAM_17_AI
+```
+
+백엔드 코드는 다음과 같이 `chungbuk_trip_ai.create_trip_preview(data)`를 호출할 수 있습니다. 배포 환경은 패키지를 설치하고 Gemini 키를 프로세스 환경변수로 주입해야 합니다. 로컬 개발에서는 설정이 AI 저장소 루트 `.env`에서만 읽히므로, 백엔드 작업 디렉터리의 `.env`는 검색되지 않습니다. 설치된 패키지를 사용할 때는 AI 저장소 작업 트리의 editable 설치가 그 저장소 루트를 기준으로 `.env`를 찾습니다.
+
+```python
+from chungbuk_trip_ai import create_trip_preview
+
+preview = create_trip_preview(trip_input)
+```
+
+## 요청 크기와 네트워크
+
+Gemini API 호출은 `generativelanguage.googleapis.com`으로 HTTPS 요청을 보내며 API 키는 헤더로 전달합니다. 입력 요청은 24,000바이트, 읽는 응답은 256,000바이트로 제한합니다. API 오류 본문이나 키는 사용자 표시 오류에 포함하지 않습니다. 실제 API 호출 없이 테스트하려면 저장소 루트에서 패키지 테스트를 실행합니다.
