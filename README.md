@@ -42,6 +42,16 @@ from chungbuk_trip_ai import create_trip_preview
 preview = create_trip_preview(trip_input)
 ```
 
+개인 취향 원문을 해석하려면 다음 공개 함수를 사용합니다. `conditions`는 호출 측에서 권한과 버전을 확인한 뒤 준비 계약의 Conditions JSON을 그대로 전달합니다. 함수는 DB 저장이나 확정을 하지 않습니다. `GeminiInvalidResponseError`, `GeminiUnavailableError`, `GeminiTimeoutError`는 모두 `GeminiError`의 하위 유형이며 BE adapter에서 각각 AI 응답 오류, 이용 불가, 시간 초과로 매핑할 수 있습니다.
+
+```python
+from chungbuk_trip_ai import interpret_personal_draft
+
+suggestion = interpret_personal_draft(original_text, conditions)
+```
+
+반환값은 `{"suggestions":{"likes":...,"avoid":...,"avoidImportance":...,"food":...,"foodImportance":...,"walking":...},"needsWalkingAnswer":...}`입니다. 원문에서 걷기 시간과 걷기/도보 문맥의 명시 근거가 확인되지 않는 `walking` 제안은 `null`과 `needsWalkingAnswer=true`로 낮춥니다. 제안에는 `originalText`가 포함되지 않으며 사용자가 검토하기 전에 저장하지 않습니다.
+
 ## 요청 크기와 네트워크
 
-Gemini API 호출은 `generativelanguage.googleapis.com`으로 HTTPS 요청을 보내며 API 키는 헤더로 전달합니다. 입력 요청은 24,000바이트, 읽는 응답은 256,000바이트로 제한합니다. API 오류 본문이나 키는 사용자 표시 오류에 포함하지 않습니다. 실제 API 호출 없이 테스트하려면 저장소 루트에서 패키지 테스트를 실행합니다.
+Gemini API 호출은 `generativelanguage.googleapis.com`으로 HTTPS 요청을 보내며 API 키는 헤더로 전달합니다. 기존 여행 미리보기 입력 요청은 24,000바이트, 개인 취향 해석은 원문/Conditions 길이를 수용하도록 64,000바이트, 읽는 응답은 256,000바이트로 제한합니다. API 오류 본문이나 키는 사용자 표시 오류에 포함하지 않습니다. 실제 API 호출 없이 테스트하려면 저장소 루트에서 패키지 테스트를 실행합니다.
