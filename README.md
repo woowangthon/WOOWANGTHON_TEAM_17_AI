@@ -42,6 +42,23 @@ from chungbuk_trip_ai import create_trip_preview
 preview = create_trip_preview(trip_input)
 ```
 
+확정된 구성원 선호를 신뢰된 지원 태그 목록에 대응시키는 제안은 다음 공개 함수를 사용합니다.
+입력은 로컬 별칭(`p1` 등)과 확정된 선호 여섯 필드만 포함하며, 반환된 태그 제안은 모두
+`requiresReview=true`입니다. 이 함수는 저장·확정하지 않고, 태그 목록이 비었거나 분류할 텍스트가
+없으면 네트워크를 호출하지 않습니다.
+
+패키지 0.3.0의 이 함수는 `walking`을 기존 계약의 문자열 `"20"`, `"40"`, `"unlimited"` 또는 `null`로 받습니다. 분 제한은 장소 사이 개별 도보 구간 기준이며 출력 `maxMinutes`만 정수입니다. 지원 태그는 호출자가 검증한 최대 200개·각 80자 목록입니다. 실제 회원 ID·닉네임·`originalText`는 입력에 허용하지 않습니다.
+
+반환값은 `terms`, `unmapped`, `walking`, `conflictCandidates`, `needsReview`입니다. 중요도는 확정 입력에서 복사하고, 동일 태그의 선호·회피 대립을 검토용 충돌 후보로 묶습니다. 모델이 전체 문장을 근거로 인용해도 모든 의미가 태그에 반영됐다는 보장은 없으므로 각 확정 문장을 `unmapped`에 보존합니다. 제안이 있는 필드는 `coverage_unverified`, 제안이 없는 필드는 `uncovered`입니다. 개인 원문을 다시 해석하거나 자동으로 필터·점수·일정을 실행하지 않습니다.
+
+새 함수의 요청 크기는 최대 400,000바이트, 응답은 기존과 동일하게 256,000바이트, provider 요청 timeout은 60초입니다. 전체 deadline과 처리 중 버전 변경 검사는 호출 측 BE가 담당합니다.
+
+```python
+from chungbuk_trip_ai import normalize_confirmed_preferences
+
+normalization = normalize_confirmed_preferences(confirmed_preferences, supported_tags)
+```
+
 개인 취향 원문을 해석하려면 다음 공개 함수를 사용합니다. `conditions`는 호출 측에서 권한과 버전을 확인한 뒤 준비 계약의 Conditions JSON을 그대로 전달합니다. 함수는 DB 저장이나 확정을 하지 않습니다. `GeminiInvalidResponseError`, `GeminiUnavailableError`, `GeminiTimeoutError`는 모두 `GeminiError`의 하위 유형이며 BE adapter에서 각각 AI 응답 오류, 이용 불가, 시간 초과로 매핑할 수 있습니다.
 
 ```python
