@@ -69,6 +69,18 @@ suggestion = interpret_personal_draft(original_text, conditions)
 
 반환값은 `{"suggestions":{"likes":...,"avoid":...,"avoidImportance":...,"food":...,"foodImportance":...,"walking":...},"needsWalkingAnswer":...}`입니다. 원문에서 걷기 시간과 걷기/도보 문맥의 명시 근거가 확인되지 않는 `walking` 제안은 `null`과 `needsWalkingAnswer=true`로 낮춥니다. 제안에는 `originalText`가 포함되지 않으며 사용자가 검토하기 전에 저장하지 않습니다.
 
+## 후보 일정 초안
+
+`draft_candidate_itinerary(dates, candidates, fixed_visits=None, max_visits_per_day=8)`는 BE가 검증해 전달한 후보 장소만으로 일정 초안을 요청합니다. 후보 입력에는 `contentid`, `title`, `planningRole`, `adminCity`, `allowedDates`, `groupScore`가 필요하고 `coordinate`와 `estimatedStayMinutes`는 선택입니다. 구성원 원문이나 공통 여행 문장은 받지 않습니다. `fixed_visits`는 날짜, 장소 ID, 0부터 시작하는 위치를 지정합니다.
+
+응답은 날짜별 `{date, contentids}`만 허용하며 모든 날짜, 후보 허용일, 중복 ID, 고정 방문 위치를 검증합니다. 결과는 항상 `requiresReview=true`, `routeVerified=false`, `timeVerified=false`, `budgetVerified=false`입니다. 이 함수는 경로·시간·예산을 계산하거나 결과를 저장하지 않습니다. `validate_candidate_itinerary(...)`는 동일한 검증을 provider 없이 적용합니다.
+
+```python
+from chungbuk_trip_ai import draft_candidate_itinerary
+
+draft = draft_candidate_itinerary(dates, candidates, fixed_visits)
+```
+
 ## 요청 크기와 네트워크
 
-Gemini API 호출은 `generativelanguage.googleapis.com`으로 HTTPS 요청을 보내며 API 키는 헤더로 전달합니다. 기존 여행 미리보기 입력 요청은 24,000바이트, 개인 취향 해석은 원문/Conditions 길이를 수용하도록 64,000바이트, 읽는 응답은 256,000바이트로 제한합니다. API 오류 본문이나 키는 사용자 표시 오류에 포함하지 않습니다. 실제 API 호출 없이 테스트하려면 저장소 루트에서 패키지 테스트를 실행합니다.
+Gemini API 호출은 `generativelanguage.googleapis.com`으로 HTTPS 요청을 보내며 API 키는 헤더로 전달합니다. 기존 여행 미리보기 입력 요청은 24,000바이트, 개인 취향 해석은 원문/Conditions 길이를 수용하도록 64,000바이트, 일정 초안 요청은 최대 400,000바이트, 모든 읽기 응답은 256,000바이트로 제한합니다. 일정 초안 provider timeout은 60초, 최대 출력은 16,384 tokens이며 자동 재시도하지 않습니다. API 오류 본문이나 키는 사용자 표시 오류에 포함하지 않습니다. 실제 API 호출 없이 테스트하려면 저장소 루트에서 패키지 테스트를 실행합니다.
