@@ -67,7 +67,11 @@ from chungbuk_trip_ai import interpret_personal_draft
 suggestion = interpret_personal_draft(original_text, conditions)
 ```
 
-반환값은 `{"suggestions":{"likes":...,"avoid":...,"avoidImportance":...,"food":...,"foodImportance":...,"walking":...},"needsWalkingAnswer":...}`입니다. 원문에서 걷기 시간과 걷기/도보 문맥의 명시 근거가 확인되지 않는 `walking` 제안은 `null`과 `needsWalkingAnswer=true`로 낮춥니다. 제안에는 `originalText`가 포함되지 않으며 사용자가 검토하기 전에 저장하지 않습니다.
+반환값은 `{"suggestions":{"likes":...,"avoid":...,"avoidImportance":...,"food":...,"foodImportance":...,"walking":...,"scheduleItems":[]},"needsWalkingAnswer":...}`입니다. 원문에서 걷기 시간과 걷기/도보 문맥의 명시 근거가 확인되지 않는 `walking` 제안은 `null`과 `needsWalkingAnswer=true`로 낮춥니다. 이 함수는 저장·준비 완료를 수행하지 않으며 실제 저장과 확인은 호출 측 BE/FE가 담당합니다.
+
+동일한 최초 분석 요청에서 실제 예약한 숙소와 고정 약속을 `scheduleItems`로 추출합니다. 각 항목은 `{id,kind:'lodging'|'appointment',scope:'personal'|'group'|null,placeQuery,contentid:null,date,time,endDate,endTime}`입니다. ID는 서버가 생성하며, DB 장소 연결과 본인 입력 보완은 BE가 처리합니다. 숙소 추천 요청은 예약으로 만들지 않습니다. 원문에서 확인되지 않은 날짜·오전/오후·범위는 null이며, 상대 날짜는 주어진 여행 날짜에만 연결합니다. 모델의 근거 문구는 내부 검증에만 쓰고 반환값에서 제거합니다. 체크인/체크아웃 시간이나 좌표를 추측하지 않습니다. 개인 일정이 그룹 일정으로 반영되는 정책은 BE에서 본인/방장 권한과 함께 검증합니다.
+
+새 일정 생성 흐름은 이 최초 분석 결과를 저장·준비 완료한 뒤 사용합니다. 아래 `normalize_confirmed_preferences`는 기존 호출자 호환을 위해 유지하며 새 준비 흐름의 두 번째 필수 AI 단계로 쓰지 않습니다. 계약 원본은 [여행 준비](https://app.notion.com/p/412e977e49088197b345d73603c6a27f)와 [일정 생성·공동 캔버스](https://app.notion.com/p/413e977e4908817a9af9ca9c7fa0ddee)입니다.
 
 ## 후보 일정 초안
 
