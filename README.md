@@ -75,7 +75,7 @@ suggestion = interpret_personal_draft(original_text, conditions)
 
 ## 후보 일정 초안
 
-`draft_candidate_itinerary(dates, candidates, fixed_visits=None, max_visits_per_day=8)`는 BE가 검증해 전달한 후보 장소만으로 일정 초안을 요청합니다. 후보 입력에는 `contentid`, `title`, `planningRole`, `adminCity`, `allowedDates`, `groupScore`가 필요하고 `coordinate`와 `estimatedStayMinutes`는 선택입니다. 구성원 원문이나 공통 여행 문장은 받지 않습니다. `fixed_visits`는 날짜, 장소 ID, 0부터 시작하는 위치를 지정합니다.
+`draft_candidate_itinerary(dates, candidates, fixed_visits=None, max_visits_per_day=8, schedule_context=None)`는 BE가 검증해 전달한 후보 장소만으로 일정 초안을 요청합니다. 후보 입력에는 `contentid`, `title`, `planningRole`, `adminCity`, `allowedDates`, `groupScore`가 필요하고 `coordinate`와 `estimatedStayMinutes`는 선택입니다. schedule_context에는 날짜별 시작·마감 시각, 출발·복귀 지점, 확인된 고정 일정의 시각을 전달할 수 있습니다. 모델이 식당을 빠뜨리면 후보 중 해당 날짜에 방문할 수 있는 식당을 보완합니다. 실제 경로 시간 검증은 BE가 담당합니다. `fixed_visits`는 날짜, 장소 ID, 0부터 시작하는 위치를 지정합니다.
 
 응답은 날짜별 `{date, contentids}`만 허용하며 모든 날짜, 후보 허용일, 중복 ID, 고정 방문 위치를 검증합니다. 결과는 항상 `requiresReview=true`, `routeVerified=false`, `timeVerified=false`, `budgetVerified=false`입니다. 이 함수는 경로·시간·예산을 계산하거나 결과를 저장하지 않습니다. `validate_candidate_itinerary(...)`는 동일한 검증을 provider 없이 적용합니다.
 
