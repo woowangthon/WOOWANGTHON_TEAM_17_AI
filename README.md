@@ -67,11 +67,15 @@ from chungbuk_trip_ai import interpret_personal_draft
 suggestion = interpret_personal_draft(original_text, conditions)
 ```
 
-반환값은 `{"suggestions":{"likes":...,"avoid":...,"avoidImportance":...,"food":...,"foodImportance":...,"walking":...},"needsWalkingAnswer":...}`입니다. 원문에서 걷기 시간과 걷기/도보 문맥의 명시 근거가 확인되지 않는 `walking` 제안은 `null`과 `needsWalkingAnswer=true`로 낮춥니다. 제안에는 `originalText`가 포함되지 않으며 사용자가 검토하기 전에 저장하지 않습니다.
+반환값은 `{"suggestions":{"likes":...,"avoid":...,"avoidImportance":...,"food":...,"foodImportance":...,"walking":...,"scheduleItems":[]},"needsWalkingAnswer":...}`입니다. 원문에서 걷기 시간과 걷기/도보 문맥의 명시 근거가 확인되지 않는 `walking` 제안은 `null`과 `needsWalkingAnswer=true`로 낮춥니다. 이 함수는 저장·준비 완료를 수행하지 않으며 실제 저장과 확인은 호출 측 BE/FE가 담당합니다.
+
+동일한 최초 분석 요청에서 실제 예약한 숙소와 고정 약속을 `scheduleItems`로 추출합니다. 각 항목은 `{id,kind:'lodging'|'appointment',scope:'personal'|'group'|null,placeQuery,contentid:null,date,time,endDate,endTime}`입니다. ID는 서버가 생성하며, DB 장소 연결과 본인 입력 보완은 BE가 처리합니다. 숙소 추천 요청은 예약으로 만들지 않습니다. 원문에서 확인되지 않은 날짜·오전/오후·범위는 null이며, 상대 날짜는 주어진 여행 날짜에만 연결합니다. 모델의 근거 문구는 내부 검증에만 쓰고 반환값에서 제거합니다. 체크인/체크아웃 시간이나 좌표를 추측하지 않습니다. 개인 일정이 그룹 일정으로 반영되는 정책은 BE에서 본인/방장 권한과 함께 검증합니다.
+
+새 일정 생성 흐름은 이 최초 분석 결과를 저장·준비 완료한 뒤 사용합니다. 아래 `normalize_confirmed_preferences`는 기존 호출자 호환을 위해 유지하며 새 준비 흐름의 두 번째 필수 AI 단계로 쓰지 않습니다. 계약 원본은 [여행 준비](https://app.notion.com/p/412e977e49088197b345d73603c6a27f)와 [일정 생성·공동 캔버스](https://app.notion.com/p/413e977e4908817a9af9ca9c7fa0ddee)입니다.
 
 ## 후보 일정 초안
 
-`draft_candidate_itinerary(dates, candidates, fixed_visits=None, max_visits_per_day=8)`는 BE가 검증해 전달한 후보 장소만으로 일정 초안을 요청합니다. 후보 입력에는 `contentid`, `title`, `planningRole`, `adminCity`, `allowedDates`, `groupScore`가 필요하고 `coordinate`와 `estimatedStayMinutes`는 선택입니다. 구성원 원문이나 공통 여행 문장은 받지 않습니다. `fixed_visits`는 날짜, 장소 ID, 0부터 시작하는 위치를 지정합니다.
+`draft_candidate_itinerary(dates, candidates, fixed_visits=None, max_visits_per_day=8, schedule_context=None)`는 BE가 검증해 전달한 후보 장소만으로 일정 초안을 요청합니다. 후보 입력에는 `contentid`, `title`, `planningRole`, `adminCity`, `allowedDates`, `groupScore`가 필요하고 `coordinate`와 `estimatedStayMinutes`는 선택입니다. schedule_context에는 날짜별 시작·마감 시각, 출발·복귀 지점, 확인된 고정 일정의 시각을 전달할 수 있습니다. 모델이 식당을 빠뜨리면 후보 중 해당 날짜에 방문할 수 있는 식당을 보완합니다. 실제 경로 시간 검증은 BE가 담당합니다. `fixed_visits`는 날짜, 장소 ID, 0부터 시작하는 위치를 지정합니다.
 
 응답은 날짜별 `{date, contentids}`만 허용하며 모든 날짜, 후보 허용일, 중복 ID, 고정 방문 위치를 검증합니다. 결과는 항상 `requiresReview=true`, `routeVerified=false`, `timeVerified=false`, `budgetVerified=false`입니다. 이 함수는 경로·시간·예산을 계산하거나 결과를 저장하지 않습니다. `validate_candidate_itinerary(...)`는 동일한 검증을 provider 없이 적용합니다.
 

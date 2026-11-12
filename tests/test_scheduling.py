@@ -155,7 +155,7 @@ class SchedulingTests(unittest.TestCase):
         args, kwargs = connection.request_args
         data = json.loads(kwargs["body"])
         prompt_payload = json.loads(data["contents"][0]["parts"][0]["text"])
-        self.assertEqual(set(prompt_payload), {"dates", "candidates", "fixedVisits", "maxVisitsPerDay"})
+        self.assertEqual(set(prompt_payload), {"dates", "candidates", "fixedVisits", "maxVisitsPerDay", "scheduleContext"})
         self.assertNotIn("secret-key", kwargs["headers"]["x-goog-api-key"] if False else json.dumps(data))
         for candidate in prompt_payload["candidates"]:
             self.assertEqual(set(candidate) - {"coordinate", "estimatedStayMinutes"}, {"contentid", "title", "planningRole", "adminCity", "allowedDates", "groupScore"})
@@ -164,6 +164,54 @@ class SchedulingTests(unittest.TestCase):
         self.assertEqual(data["generationConfig"]["maxOutputTokens"], 16384)
         self.assertEqual(result["days"], RAW["days"])
         self.assertTrue(connection.closed)
+
+    def test_schedule_context_is_sent_and_compacts_known_overlong_stays_without_moving_anchors(self):
+        day = DATES[0]
+        candidates = [dict(CANDIDATES[0], allowedDates=[day], estimatedStayMinutes=360),
+                     dict(CANDIDATES[1], allowedDates=[day], estimatedStayMinutes=360)]
+        anchors = [{"date": day, "contentid": 101, "position": 0}]
+        result = validate_candidate_itinerary([day], candidates, anchors, 8,
+            {"days": [{"date": day, "contentids": [101, 202]}]},
+            {"dayWindows": [{"date": day, "startTime": "09:00", "endTime": "20:00"}],
+             "departureAnchor": None, "returnAnchor": None})
+        self.assertEqual(result["days"][0]["contentids"], [101])
+
+    def test_provider_receives_each_day_clock_and_only_confirmed_fixed_visit_times(self):
+        connection = FakeConnection()
+        anchors = [{"date": DATES[0], "contentid": RAW["days"][0]["contentids"][0], "position": 0}]
+        context = {"dayWindows": [{"date": day, "startTime": "10:30" if i == 0 else "09:00",
+                                   "endTime": "20:00"} for i, day in enumerate(DATES)],
+                   "departureAnchor": None, "returnAnchor": None,
+                   "fixedTimes": [{"date": DATES[0], "contentid": anchors[0]["contentid"],
+                                   "startTime": "11:30", "endTime": "12:15"}]}
+        with patch("chungbuk_trip_ai.scheduling.load_gemini_settings", return_value=GeminiSettings("test")), patch(
+            "chungbuk_trip_ai.scheduling.HTTPSConnection", return_value=connection):
+            draft_candidate_itinerary(DATES, CANDIDATES, anchors, 8, context)
+        body = json.loads(connection.request_args[1]["body"])
+        self.assertEqual(json.loads(body["contents"][0]["parts"][0]["text"])["scheduleContext"], context)
+
+    def test_compaction_removes_flexible_visits_when_known_stay_time_exceeds_window(self):
+        day = DATES[0]
+        candidates = [dict(CANDIDATES[0], allowedDates=[day], estimatedStayMinutes=500),
+                     dict(CANDIDATES[1], allowedDates=[day], estimatedStayMinutes=300)]
+        result = validate_candidate_itinerary([day], candidates, [], 8,
+            {"days": [{"date": day, "contentids": [101, 202]}]},
+            {"dayWindows": [{"date": day, "startTime": "09:00", "endTime": "20:00"}],
+             "departureAnchor": None, "returnAnchor": None})
+        self.assertEqual(result["days"][0]["contentids"], [101])
+
+    def test_missing_meal_stops_are_added_from_eligible_catalog_candidates(self):
+        day = DATES[0]
+        candidates = [dict(CANDIDATES[0], allowedDates=[day], estimatedStayMinutes=60),
+                      {"contentid": 202, "title": "Meal A", "planningRole": "meal_stop", "adminCity": "Cheongju",
+                       "allowedDates": [day], "groupScore": 0.4, "estimatedStayMinutes": 60},
+                      {"contentid": 303, "title": "Meal B", "planningRole": "meal_stop", "adminCity": "Cheongju",
+                       "allowedDates": [day], "groupScore": 0.3, "estimatedStayMinutes": 60}]
+        result = validate_candidate_itinerary([day], candidates, [], 8,
+            {"days": [{"date": day, "contentids": [101]}]},
+            {"dayWindows": [{"date": day, "startTime": "09:00", "endTime": "20:00"}],
+             "departureAnchor": None, "returnAnchor": None})
+        self.assertEqual(set(result["days"][0]["contentids"]), {101, 202, 303})
 
     def test_timeout_invalid_finish_provider_failure_and_cleanup_are_typed_and_safe(self):
         failure_cases = [
