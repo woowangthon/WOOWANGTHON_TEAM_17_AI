@@ -14,7 +14,7 @@ chungbuk-trip-preview = "chungbuk_trip_ai.trip_preview:main"
 preference-dataset = "training.validate_dataset:main"
 preference-train = "training.train:main"
 preference-evaluate = "evaluation.run:main"
-preference-qwen-serve = "serving.server:serve"
+preference-qwen-serve = "serving.server:main"
 
 [project.optional-dependencies]
 training = [

@@ -1,0 +1,31 @@
+{
+  "createdAt": "2026-11-13T23:18:56.997366+00:00",
+  "status": "failed",
+  "developmentCase": "food",
+  "fixture": "synthetic-source/SQLite/test-auth",
+  "productionMySql": false,
+  "productionAuth": false,
+  "browserTest": false,
+  "liveModelsRequested": true,
+  "errorType": "RuntimeError",
+  "steps": [
+    {
+      "method": "GET",
+      "path": "/api/v1/trips/{tripId}/preferences/me",
+      "status": 200,
+      "latencyMs": 4.285
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/trips/{tripId}/preferences/me",
+      "status": 200,
+      "latencyMs": 3.635
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/trips/{tripId}/preferences/me/interpret",
+      "status": 503,
+      "latencyMs": 6836.247
+    }
+  ]
+}

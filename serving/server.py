@@ -228,7 +228,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def serve(host: str | None = None, port: int | None = None) -> None:
-    host = host or os.environ.get("QWEN_BIND_HOST", "0.0.0.0")
+    host = host or os.environ.get("QWEN_BIND_HOST", "127.0.0.1")
     port = port or int(os.environ.get("QWEN_BIND_PORT", "18117"))
     server = ThreadingHTTPServer((host, port), Handler)
     server.daemon_threads = True
@@ -242,5 +242,16 @@ def serve(host: str | None = None, port: int | None = None) -> None:
     server.serve_forever()
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Load repo-local environment before taking a runtime configuration snapshot."""
+    from dotenv import load_dotenv
+
+    load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env",
+                override=False, interpolate=False)
+    global RUNTIME
+    RUNTIME = Runtime()
     serve()
+
+
+if __name__ == "__main__":
+    main()

@@ -12,7 +12,16 @@ Use Python 3.12 and a CUDA environment compatible with the pinned PyTorch build.
 
 Dependencies are pinned in `requirements-training.txt` and `requirements-serving.txt`: Torch 2.9.1 (CUDA 12.8 wheel), Transformers 5.23.0, PEFT 0.21.3, Accelerate 1.15.0, safetensors 0.8.0 and sentencepiece 0.2.1. These were checked against the official [PyPI Transformers](https://pypi.org/project/transformers/5.23.0/), [PEFT](https://pypi.org/project/peft/0.21.3/), [TRL](https://pypi.org/project/trl/1.17.1/) and [Accelerate](https://pypi.org/project/accelerate/1.15.0/) release pages on 2026-11-14. TRL is not a runtime dependency: the trainer uses a small explicit Transformers/PEFT loop so it can reject overlength examples and apply loss only to assistant completion tokens.
 
-From the repository root, prepare and validate data, run the one-step kernel smoke configuration, then use the full config only after the root owner chooses to start training:
+Create a Python 3.12 environment, install the CUDA wheel first, then the pinned direct dependencies. The complete environment used for the Windows experiment is also recorded in `requirements-lock.windows.txt`. Linux/Docker has not been executed here and is not claimed to be bitwise equivalent.
+
+```powershell
+python -m pip install --index-url https://download.pytorch.org/whl/cu128 torch==2.9.1
+python -m pip install -r requirements-training.txt -r requirements-kernels.txt
+python -m pip install -e .
+python scripts/prepare_base.py
+```
+
+From the repository root, prepare and validate data, run the one-step smoke configuration, then use the full config when GPU training is intended:
 
 ```powershell
 python -m training.dataset
@@ -27,11 +36,19 @@ Save the base model ID and immutable revision, Transformers/PEFT/TRL/Torch/CUDA 
 
 ## Evaluation and serving
 
-Run `python -m evaluation.run --config configs/evaluation.json` after the base/adapter/service are ready. It defaults to at most 24 examples, a fixed test split, disabled external providers and a zero external-call budget. To enable Gemini, set `enable_external_providers` and a positive `external_call_budget` in a local evaluation config; ensemble calls count as two provider requests. Qwen service access is separately opt-in. The evaluation records raw v2 schema validity, semantic guard validity, status/error type, latency, model/revision/adapter and strict tuple metrics. Synthetic raw predictions are saved for inspectable failures; human-set raw predictions are omitted. Results split aggregates by provenance.
+Run `python -m evaluation.run --config configs/evaluation.json` after the base/adapter/service are ready. It defaults to at most 26 examples, a fixed test split, disabled external providers and a zero external-call budget. The explicit `evaluation-local.json`, `evaluation-gemini.json` and `evaluation-ensemble.json` configs reproduce the three experiment phases. The latter two enable real provider calls within stated budgets and pace external requests at five-second start intervals. The CLI loads the AI repository `.env` with process-environment priority. Ensemble budgets count both provider requests; they are not a Gemini billing counter.
+
+Run local base/adapter evaluation first, without a concurrent GPU service. Then start `python -m serving.server` and wait for `/ready` before the ensemble phase. The native CLI loads the repository `.env`, including Qwen settings, and defaults to loopback binding. BE loads its own `.env`; set `PREFERENCE_AI_PROVIDER=ensemble` and `QWEN_PREFERENCE_URL=http://127.0.0.1:18117/v1/interpret` there. Gemini key/model settings can be supplied in the process or AI root `.env`. The FE never receives keys.
+
+The evaluator records combined contract-and-semantic-guard validity, status/error type, latency, model/revision/adapter, config/prompt/schema hashes and strict tuple metrics. This combined check is not a separate JSON-only validity or semantic-accuracy study. Synthetic raw predictions are saved for inspectable failures; human-set raw predictions and textual gold diagnostics are omitted. Human evaluation requires a separate, explicitly selected human-only test config and actual local/external processing permissions. Remote Qwen HTTP endpoints also require external-processing permission for human inputs. Report JSON and CSV must match exactly; human reports lacking redistribution permission are excluded from submission packages.
 
 The semantic score is a strict-match proxy: full condition tuples include target wording, polarity, priority, scope, audience, frequency, value, unit and approximation; booking tuples compare scope and grounded date/time/place while omitting server-generated IDs. This is not a human accuracy estimate. Do not infer release readiness from synthetic-only results; add separately reviewed/adjudicated human sets and report those independently.
 
 The service provides `/health`, `/ready` and `POST /v1/interpret`, returns only raw v2 JSON, and reports whether the configured adapter is loaded, its manifest/checksum, base revision and contract hash. It requires the verified trained adapter at `artifacts/training/full/adapter-best` by default; intentional base-only debug mode requires `QWEN_ALLOW_BASE_MODEL=true`. Compose publishes only to loopback by default. Docker pins the official CUDA 12.8.1 runtime image by its resolved multi-architecture index digest and builds for `linux/amd64`; resolved base metadata is in `artifacts/docker-base.json`. Docker train and serve profiles have not been built here: Docker Desktop/WSL was unhealthy in this run. Use the host Python path until Docker health is restored; no GPU container run is claimed. Do not ship an adapter until a human-reviewed held-out evaluation supports release.
+
+After WSL/Docker is healthy, the unverified container commands are `docker compose --profile train build`, `docker compose --profile train run --rm preference-train`, and `docker compose --profile serve up -d preference-qwen`. The build context excludes `.env`, local human annotations, venvs, Git internals and generated artifacts. Base weights and adapters are mounted from the host, not copied into the image. Do not run another training job over an existing experiment directory merely to test Docker; use a separate output config and keep the original run/manifest.
+
+`scripts/verify_stack.py --be-root <BE checkout> --live-models` makes one explicitly enabled live ensemble request through isolated SQLite/test-auth BE routes. It requires both healthy providers and records failures. `--clean-common-context` explicitly clears the fixture's lodging/fixedSchedule text defaults for a focused personal-input smoke. This flag changes only the temporary SQLite fixture; it does not repair or change real user conditions. See `reports/RESULTS.md` for the failed common-context case and the narrower successful case. This script requires BE's test dependencies and is not production MySQL/auth or browser acceptance.
 
 ## Artifact manifest
 

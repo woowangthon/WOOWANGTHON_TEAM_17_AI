@@ -4,6 +4,9 @@ import hashlib
 import json
 import random
 import re
+import unicodedata
+from datetime import datetime
+from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
@@ -468,6 +471,251 @@ def load_dataset(path: Path) -> list[dict[str, Any]]:
     records = [json.loads(line) for line in data.decode("utf-8").splitlines() if line]
     validate_records(records)
     return records
+
+
+HUMAN_REVIEW_FIELDS = {"annotatorId", "reviewerId", "reviewedAt", "attestations", "permissions"}
+HUMAN_ATTESTATION_FIELDS = {"humanAuthored", "independentlySourced", "independentlyReviewed"}
+HUMAN_PERMISSION_FIELDS = {"localEvaluation", "externalAiProcessing", "publicRedistribution"}
+HUMAN_RECORD_FIELDS = {"recordId", "sourceDigest", "sourceId", "sourceFamily", "holdoutKey", "split", "splitKey",
+                       "originalPrompt", "systemPromptSha256", "originalText", "conditions", "target", "labelStatus",
+                       "provenance", "sourceOwner", "sourceLicense", "reviewMetadata"}
+_PLACEHOLDER_VALUES = {"", "pending", "todo", "tbd", "unknown", "n/a", "na", "none", "null", "placeholder",
+                       "fill in", "your name", "sample", "example", "insert", "replace me", "owner", "license",
+                       "예시", "미정", "미작성", "입력"}
+_PSEUDONYM_RE = re.compile(r"^anon-[A-Za-z0-9][A-Za-z0-9_-]{1,30}$")
+
+
+def _normalized_source(text: str) -> str:
+    return re.sub(r"\s+", "", unicodedata.normalize("NFKC", text).casefold())
+
+
+def _require_real_text(value: Any, field: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"{field} must be a non-placeholder string")
+    cleaned = value.strip()
+    folded = unicodedata.normalize("NFKC", cleaned).casefold()
+    if len(cleaned) < 3 or folded in _PLACEHOLDER_VALUES or any(token in folded for token in ("<fill", "todo", "tbd", "pending", "예시 입력", "여기에 입력")):
+        raise ValueError(f"{field} must be a real non-placeholder value")
+    return cleaned
+
+
+def _validate_review_metadata(metadata: Any) -> dict[str, Any]:
+    if not isinstance(metadata, dict) or set(metadata) != HUMAN_REVIEW_FIELDS:
+        raise ValueError("reviewMetadata fields must match the annotation contract")
+    annotator = metadata["annotatorId"]
+    reviewer = metadata["reviewerId"]
+    if not isinstance(annotator, str) or not _PSEUDONYM_RE.fullmatch(annotator.strip()):
+        raise ValueError("annotatorId must be a pseudonymous anon-... code")
+    if not isinstance(reviewer, str) or not _PSEUDONYM_RE.fullmatch(reviewer.strip()):
+        raise ValueError("reviewerId must be a pseudonymous anon-... code")
+    if annotator.strip() == reviewer.strip():
+        raise ValueError("annotatorId and reviewerId must identify different pseudonymous people")
+    timestamp = metadata["reviewedAt"]
+    if not isinstance(timestamp, str):
+        raise ValueError("reviewedAt must be an ISO-8601 timestamp with a timezone")
+    try:
+        parsed_timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("reviewedAt must be an ISO-8601 timestamp with a timezone") from exc
+    if parsed_timestamp.tzinfo is None or parsed_timestamp.utcoffset() is None:
+        raise ValueError("reviewedAt must include a timezone offset")
+    attestations = metadata["attestations"]
+    if not isinstance(attestations, dict) or set(attestations) != HUMAN_ATTESTATION_FIELDS or any(value is not True for value in attestations.values()):
+        raise ValueError("Human authoring, independent sourcing and independent review attestations must all be true")
+    permissions = metadata["permissions"]
+    if not isinstance(permissions, dict) or set(permissions) != HUMAN_PERMISSION_FIELDS or any(type(value) is not bool for value in permissions.values()):
+        raise ValueError("permissions must contain localEvaluation, externalAiProcessing and publicRedistribution booleans")
+    if permissions["localEvaluation"] is not True:
+        raise ValueError("The importer only accepts records permitted for local evaluation")
+    return metadata
+
+
+def _check_human_row(row: Any) -> dict[str, Any]:
+    if not isinstance(row, dict):
+        raise ValueError("Each human annotation must be an object")
+    expected_input = {"sourceId", "sourceFamily", "originalText", "conditions", "target", "sourceOwner", "sourceLicense", "reviewMetadata"}
+    if set(row) != expected_input:
+        raise ValueError(f"Human annotation fields must be exactly: {sorted(expected_input)}")
+    for key in ("sourceId", "sourceFamily"):
+        if not isinstance(row[key], str) or len(row[key].strip()) < 3 or row[key].strip().casefold() in _PLACEHOLDER_VALUES:
+            raise ValueError(f"{key} must be a distinct non-placeholder identifier")
+    original = row["originalText"]
+    if not isinstance(original, str) or len(_normalized_source(original)) < 6:
+        raise ValueError("originalText must contain a real source request")
+    if not isinstance(row["conditions"], dict):
+        raise ValueError("conditions must be an object")
+    source_owner = _require_real_text(row["sourceOwner"], "sourceOwner")
+    source_license = _require_real_text(row["sourceLicense"], "sourceLicense")
+    metadata = _validate_review_metadata(row["reviewMetadata"])
+    target = row["target"]
+    _validate_output_shape(target)
+    from chungbuk_trip_ai.ensemble import _validate_raw
+    _validate_raw(target, original, row["conditions"])
+    payload = build_model_input(original, row["conditions"])
+    family = row["sourceFamily"].strip()
+    source_id = row["sourceId"].strip()
+    record_key = {"sourceFamily": family, "sourceId": source_id, "originalText": original,
+                  "conditions": row["conditions"], "target": target}
+    return {"recordId": digest_json(record_key)[:20], "sourceDigest": digest_json(payload),
+            "sourceId": source_id, "sourceFamily": family, "holdoutKey": family,
+            "split": "test", "splitKey": f"family:{family}", "originalPrompt": canonical_json(payload),
+            "systemPromptSha256": digest_json(SYSTEM_INSTRUCTION_V2), "originalText": original,
+            "conditions": row["conditions"], "target": target, "labelStatus": "human_adjudicated",
+            "provenance": "human_adjudicated", "sourceOwner": source_owner,
+            "sourceLicense": source_license, "reviewMetadata": metadata}
+
+
+def _validate_human_records(records: list[dict[str, Any]]) -> dict[str, Any]:
+    from chungbuk_trip_ai.ensemble import _validate_raw
+    if not records:
+        raise ValueError("Human evaluation dataset is empty")
+    ids: set[str] = set()
+    families: set[str] = set()
+    normalized_texts: set[str] = set()
+    digests: set[str] = set()
+    for row in records:
+        if not isinstance(row, dict) or set(row) != HUMAN_RECORD_FIELDS:
+            raise ValueError("Unexpected human evaluation record fields")
+        if row["split"] != "test" or row["provenance"] != "human_adjudicated" or row["labelStatus"] != "human_adjudicated":
+            raise ValueError("Human evaluation records must all be human_adjudicated test rows")
+        if row["sourceId"] in ids:
+            raise ValueError("Duplicate human sourceId")
+        if not isinstance(row["sourceId"], str) or len(row["sourceId"].strip()) < 3 or row["sourceId"].strip().casefold() in _PLACEHOLDER_VALUES:
+            raise ValueError("Human sourceId must be a real non-placeholder identifier")
+        ids.add(row["sourceId"])
+        if not isinstance(row["sourceFamily"], str) or len(row["sourceFamily"].strip()) < 3 or row["sourceFamily"].strip().casefold() in _PLACEHOLDER_VALUES:
+            raise ValueError("Human sourceFamily must be a real non-placeholder identifier")
+        families.add(row["sourceFamily"])
+        normalized = _normalized_source(row["originalText"])
+        if normalized in normalized_texts:
+            raise ValueError("Duplicate normalized human input")
+        normalized_texts.add(normalized)
+        if row["sourceDigest"] in digests:
+            raise ValueError("Duplicate human sourceDigest")
+        digests.add(row["sourceDigest"])
+        _validate_review_metadata(row["reviewMetadata"])
+        _require_real_text(row["sourceOwner"], "sourceOwner")
+        _require_real_text(row["sourceLicense"], "sourceLicense")
+        if row["holdoutKey"] != row["sourceFamily"] or row["splitKey"] != f"family:{row['sourceFamily']}" or row["systemPromptSha256"] != digest_json(SYSTEM_INSTRUCTION_V2):
+            raise ValueError("Human family split or prompt identity is invalid")
+        payload = build_model_input(row["originalText"], row["conditions"])
+        if row["originalPrompt"] != canonical_json(payload) or row["sourceDigest"] != digest_json(payload):
+            raise ValueError("Human source digest or original prompt does not match source fields")
+        key = {k: row[k] for k in ("sourceFamily", "sourceId", "originalText", "conditions", "target")}
+        if row["recordId"] != digest_json(key)[:20]:
+            raise ValueError("Human recordId does not match source and target")
+        _validate_output_shape(row["target"])
+        _validate_raw(row["target"], row["originalText"], row["conditions"])
+    return {"records": len(records), "families": len(families), "bySplit": {"test": len(records)},
+            "byProvenance": {"human_adjudicated": len(records)}}
+
+
+def _human_overlap_and_similarity(records: list[dict[str, Any]], synthetic: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    synthetic_ids = {row["sourceId"] for row in synthetic}
+    synthetic_families = {row["sourceFamily"] for row in synthetic}
+    synthetic_digests = {row["sourceDigest"] for row in synthetic}
+    synthetic_record_ids = {row["recordId"] for row in synthetic}
+    synthetic_norms = {_normalized_source(row["originalText"]): row["sourceId"] for row in synthetic}
+    human_ids: set[str] = set()
+    human_norms: dict[str, str] = {}
+    for row in records:
+        if row["sourceId"] in synthetic_ids or row["sourceId"] in human_ids:
+            raise ValueError(f"sourceId overlaps or repeats: {row['sourceId']}")
+        human_ids.add(row["sourceId"])
+        if row["sourceFamily"] in synthetic_families:
+            raise ValueError(f"sourceFamily overlaps synthetic holdout family: {row['sourceFamily']}")
+        if row["sourceDigest"] in synthetic_digests or row["recordId"] in synthetic_record_ids:
+            raise ValueError(f"sourceDigest or recordId overlaps synthetic data: {row['sourceId']}")
+        normalized = _normalized_source(row["originalText"])
+        if normalized in synthetic_norms:
+            raise ValueError(f"Normalized source text overlaps synthetic record {synthetic_norms[normalized]}")
+        if normalized in human_norms:
+            raise ValueError(f"Normalized source text overlaps human record {human_norms[normalized]}")
+        human_norms[normalized] = row["sourceId"]
+
+    flagged = []
+    all_existing = [(row["sourceId"], _normalized_source(row["originalText"])) for row in synthetic]
+    all_existing.extend((row["sourceId"], _normalized_source(row["originalText"])) for row in records)
+    for row in records:
+        candidate = _normalized_source(row["originalText"])
+        for other_id, other_text in all_existing:
+            if other_id == row["sourceId"] or min(len(candidate), len(other_text)) < 12:
+                continue
+            score = SequenceMatcher(None, candidate, other_text, autojunk=False).ratio()
+            if score >= 0.82:
+                flagged.append({"sourceId": row["sourceId"], "comparedSourceId": other_id,
+                                "similarity": round(score, 4), "action": "review_flag" if score < 0.94 else "high_similarity_flag"})
+    return flagged
+
+
+def import_human_dataset(input_path: Path, output_path: Path,
+                         synthetic_path: Path | None = None) -> dict[str, Any]:
+    """Validate human annotations and write an isolated test-only JSONL plus manifest."""
+    synthetic_path = synthetic_path or ROOT / "data" / "generated" / "preference-v2.jsonl"
+    if output_path.resolve() in {input_path.resolve(), synthetic_path.resolve()}:
+        raise ValueError("Output JSONL must be different from annotation input and synthetic dataset")
+    synthetic = load_dataset(synthetic_path)
+    synthetic_bytes = synthetic_path.read_bytes()
+    try:
+        template_rows = json.loads(input_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Human annotation input is not valid JSON: {exc}") from exc
+    if not isinstance(template_rows, list) or not template_rows:
+        raise ValueError("Human annotation input must be a non-empty JSON array")
+    records = [_check_human_row(row) for row in template_rows]
+    summary = _validate_human_records(records)
+    similarity_flags = _human_overlap_and_similarity(records, synthetic)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    data_bytes = ("".join(canonical_json(row) + "\n" for row in records)).encode("utf-8")
+    output_path.write_bytes(data_bytes)
+    manifest = {"kind": "human-evaluation", "testOnly": True, "dataset": output_path.name,
+                "sha256": hashlib.sha256(data_bytes).hexdigest(),
+                "excludedSyntheticDatasetSha256": hashlib.sha256(synthetic_bytes).hexdigest(),
+                "contractSchemaHash": digest_json(MODEL_OUTPUT_SCHEMA_V2),
+                "systemPromptSha256": digest_json(SYSTEM_INSTRUCTION_V2),
+                "summary": summary, "nearDuplicateFlags": similarity_flags,
+                "nearDuplicateMethod": "NFKC + casefold + whitespace removal; SequenceMatcher character ratio >= 0.82; flags only, not semantic leakage detection"}
+    manifest_path = output_path.with_suffix(".manifest.json")
+    manifest_path.write_bytes((json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
+    return manifest
+
+
+def load_human_dataset(path: Path, synthetic_path: Path | None = None) -> list[dict[str, Any]]:
+    data = path.read_bytes()
+    manifest_path = path.with_suffix(".manifest.json")
+    if not manifest_path.is_file():
+        raise ValueError("Human evaluation manifest is missing")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("kind") != "human-evaluation" or manifest.get("testOnly") is not True:
+        raise ValueError("Manifest is not marked as a test-only human evaluation dataset")
+    if hashlib.sha256(data).hexdigest() != manifest.get("sha256"):
+        raise ValueError("Human evaluation JSONL bytes do not match manifest SHA-256")
+    if manifest.get("contractSchemaHash") != digest_json(MODEL_OUTPUT_SCHEMA_V2) or manifest.get("systemPromptSha256") != digest_json(SYSTEM_INSTRUCTION_V2):
+        raise ValueError("Human evaluation contract or system prompt hash is stale")
+    if not data.endswith(b"\n") or b"\r" in data:
+        raise ValueError("Human evaluation JSONL must use deterministic UTF-8 LF line endings")
+    records = [json.loads(line) for line in data.decode("utf-8").splitlines() if line]
+    summary = _validate_human_records(records)
+    if summary != manifest.get("summary"):
+        raise ValueError("Human evaluation summary differs from manifest")
+    synthetic_path = synthetic_path or ROOT / "data" / "generated" / "preference-v2.jsonl"
+    synthetic = load_dataset(synthetic_path)
+    if hashlib.sha256(synthetic_path.read_bytes()).hexdigest() != manifest.get("excludedSyntheticDatasetSha256"):
+        raise ValueError("Human evaluation file was sealed against a different synthetic dataset")
+    similarity_flags = _human_overlap_and_similarity(records, synthetic)
+    if similarity_flags != manifest.get("nearDuplicateFlags"):
+        raise ValueError("Human near-duplicate flags differ from manifest")
+    return records
+
+
+def load_evaluation_dataset(path: Path, synthetic_path: Path | None = None) -> list[dict[str, Any]]:
+    """Load a legacy synthetic dataset or a separately manifested human test-only set."""
+    manifest_path = path.with_suffix(".manifest.json")
+    if manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest.get("kind") == "human-evaluation":
+            return load_human_dataset(path, synthetic_path)
+    return load_dataset(path)
 
 
 if __name__ == "__main__":

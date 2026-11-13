@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import re
@@ -157,6 +158,154 @@ def _load_config(path: Path) -> dict[str, Any]:
     return value
 
 
+def _human_provenance(value: Any) -> bool:
+    return isinstance(value, str) and ("human" in value.casefold() or "adjudicated" in value.casefold())
+
+
+def _synthetic_provenance(value: Any) -> bool:
+    return isinstance(value, str) and value.casefold().startswith("synthetic_")
+
+
+def _report_provenance(document: dict[str, Any]) -> tuple[bool, bool, bool]:
+    """Return (human present, synthetic explicitly identified, structure valid)."""
+    metadata = document.get("metadata")
+    if not isinstance(metadata, dict):
+        return False, False, False
+    if "containsHumanData" in metadata and type(metadata["containsHumanData"]) is not bool:
+        return False, False, False
+    human = metadata.get("containsHumanData") is True
+    labels: list[str] = []
+    by_provenance = document.get("byProvenance")
+    if by_provenance is not None:
+        if not isinstance(by_provenance, dict):
+            return False, False, False
+        for label, summary in by_provenance.items():
+            if not isinstance(label, str) or not isinstance(summary, dict):
+                return False, False, False
+            examples = summary.get("examples")
+            if examples is not None and (type(examples) is not int or examples < 0):
+                return False, False, False
+            if examples == 0:
+                continue
+            labels.append(label)
+            human = human or _human_provenance(label)
+    examples = document.get("examples")
+    if examples is not None:
+        if not isinstance(examples, list) or any(not isinstance(row, dict) for row in examples):
+            return False, False, False
+        for row in examples:
+            provenance = row.get("provenance", row.get("labelStatus"))
+            if not isinstance(provenance, str):
+                labels.append("unknown")
+                continue
+            labels.append(provenance)
+            human = human or _human_provenance(provenance)
+    declared_provenance = metadata.get("provenance")
+    if isinstance(declared_provenance, str):
+        labels.append(declared_provenance)
+        human = human or _human_provenance(declared_provenance)
+    elif isinstance(declared_provenance, list):
+        if any(not isinstance(label, str) for label in declared_provenance):
+            return False, False, False
+        labels.extend(declared_provenance)
+        human = human or any(_human_provenance(label) for label in declared_provenance)
+    elif declared_provenance is not None:
+        return False, False, False
+    synthetic_explicit = bool(labels) and all(_synthetic_provenance(label) for label in labels)
+    return human, synthetic_explicit, True
+
+
+def _evaluation_report_eligibility(json_path: Path) -> str | None:
+    try:
+        document = json.loads(json_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return "malformed_report_json"
+    if not isinstance(document, dict):
+        return "malformed_report_json"
+    human, synthetic_explicit, valid = _report_provenance(document)
+    if not valid:
+        return "malformed_or_unknown_privacy_metadata"
+    metadata = document["metadata"]
+    permission = metadata.get("publicRedistributionAllowed")
+    if permission is not None and type(permission) is not bool:
+        return "malformed_or_unknown_privacy_metadata"
+    if permission is False:
+        return "public_redistribution_denied"
+    if human:
+        if permission is not True:
+            return "human_report_permission_missing"
+        return None
+    if synthetic_explicit:
+        return None
+    if metadata.get("containsHumanData") is False and permission is True:
+        return None
+    return "unknown_privacy_provenance"
+
+
+def _csv_value(value: Any) -> str:
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, ensure_ascii=False)
+    return "" if value is None else str(value)
+
+
+def _valid_csv_report(path: Path, document: dict[str, Any]) -> bool:
+    try:
+        with path.open("r", encoding="utf-8-sig", newline="") as stream:
+            reader = csv.reader(stream, strict=True)
+            actual = list(reader)
+            examples = document.get("examples")
+            if not isinstance(examples, list) or not examples or any(not isinstance(row, dict) for row in examples):
+                return False
+            expected_header = sorted({key for row in examples for key in row})
+            if not expected_header or not actual or actual[0] != expected_header:
+                return False
+            expected_rows = [[_csv_value(row.get(key)) for key in expected_header] for row in examples]
+            return actual[1:] == expected_rows
+    except (OSError, UnicodeError, csv.Error):
+        return False
+
+
+def collect_evaluation_reports(directory: Path, root: Path) -> tuple[list[Path], list[dict[str, str]]]:
+    """Return only eligible, well-formed JSON/CSV pairs with safe exclusion reasons."""
+    if not directory.is_dir():
+        return [], []
+    json_by_stem = {path.stem: path for path in directory.glob("*") if path.is_file() and path.suffix.lower() == ".json"}
+    csv_by_stem = {path.stem: path for path in directory.glob("*") if path.is_file() and path.suffix.lower() == ".csv"}
+    included: list[Path] = []
+    excluded: list[dict[str, str]] = []
+    for stem in sorted(set(json_by_stem) | set(csv_by_stem)):
+        json_path = json_by_stem.get(stem)
+        csv_path = csv_by_stem.get(stem)
+        pair = [path for path in (json_path, csv_path) if path is not None]
+        if json_path is None or csv_path is None:
+            reason = "missing_json_pair" if json_path is None else "unpaired_json_report"
+        else:
+            reason = _evaluation_report_eligibility(json_path)
+            if reason is None:
+                try:
+                    document = json.loads(json_path.read_text(encoding="utf-8"))
+                except (OSError, UnicodeError, json.JSONDecodeError):
+                    document = None
+                if not isinstance(document, dict) or not _valid_csv_report(csv_path, document):
+                    reason = "csv_does_not_match_json_examples"
+        if reason:
+            for path in pair:
+                excluded.append({"name": path.relative_to(root).as_posix(), "reason": reason})
+            continue
+        included.extend(pair)
+    return included, excluded
+
+
+def _evaluation_status(included: list[Path], excluded: list[dict[str, str]]) -> str:
+    if included and excluded:
+        return "reports_available_with_exclusions"
+    if included:
+        return "reports_available"
+    if excluded:
+        return "reports_excluded_by_privacy_or_pairing"
+    return "not_run_or_not_available"
+
+
 def _verify_dataset(path: Path) -> Path:
     manifest_path = path.with_suffix(".manifest.json")
     if not manifest_path.is_file():
@@ -228,12 +377,13 @@ def inspect_submission(root: Path = ROOT, config_path: Path = DEFAULT_CONFIG) ->
     elif json.loads((adapter / "adapter-manifest.json").read_text(encoding="utf-8")).get("status") == "smoke-only":
         errors.append("Smoke-only adapter cannot be submitted")
     eval_dir = safe_relative(root, config["evaluation_directory"], required=False)
-    eval_reports = sorted(path.relative_to(root).as_posix() for path in eval_dir.glob("*")
-                          if path.is_file() and path.suffix.lower() in {".json", ".csv"}) if eval_dir.is_dir() else []
+    eval_reports, excluded_reports = collect_evaluation_reports(eval_dir, root)
+    eval_report_names = sorted(path.relative_to(root).as_posix() for path in eval_reports)
     return {"packageStatus": "not_packaged" if errors else "ready_to_validate",
             "errors": errors, "adapterPath": Path(config["adapter_path"]).as_posix(),
-            "evaluationStatus": "reports_available" if eval_reports else "not_run_or_not_available",
-            "evaluationReports": eval_reports,
+            "evaluationStatus": _evaluation_status(eval_reports, excluded_reports),
+            "evaluationReports": eval_report_names,
+            "excludedEvaluationReports": excluded_reports,
             "humanGoldStatus": "pending_team_input"}
 
 
@@ -319,17 +469,29 @@ def create_submission(root: Path = ROOT, config_path: Path = DEFAULT_CONFIG, *, 
         ("team/TEAM_INPUTS.md", root / "TEAM_INPUTS.md"),
         ("reproduction/reproducibility.md", root / "docs" / "reproducibility.md"),
         ("reproduction/submission.md", root / "docs" / "submission.md"),
+        ("reproduction/requirements-training.txt", root / "requirements-training.txt"),
+        ("reproduction/requirements-serving.txt", root / "requirements-serving.txt"),
+        ("reproduction/requirements-kernels.txt", root / "requirements-kernels.txt"),
+        ("reproduction/requirements-lock.windows.txt", root / "requirements-lock.windows.txt"),
+        ("evaluation/evaluation-local.json", root / "configs" / "evaluation-local.json"),
+        ("evaluation/evaluation-gemini.json", root / "configs" / "evaluation-gemini.json"),
+        ("evaluation/evaluation-ensemble.json", root / "configs" / "evaluation-ensemble.json"),
+        ("evidence/RESULTS.md", root / "reports" / "RESULTS.md"),
+        ("evidence/EVALUATION_SUMMARY.json", root / "reports" / "EVALUATION_SUMMARY.json"),
+        ("evidence/PRESENTATION_NOTES.md", root / "reports" / "PRESENTATION_NOTES.md"),
+        ("evidence/ui/README.md", root / "reports" / "ui" / "README.md"),
+        ("evidence/ui/preference-v2-desktop.jpg", root / "reports" / "ui" / "preference-v2-desktop.jpg"),
+        ("evidence/ui/preference-v2-mobile.jpg", root / "reports" / "ui" / "preference-v2-mobile.jpg"),
     ]:
         if path.is_file():
             _add_file(entries, archive_name, path, root, sanitized)
     evaluation_dir = safe_relative(root, config["evaluation_directory"], required=False)
+    selected_reports, excluded_reports = collect_evaluation_reports(evaluation_dir, root)
     evaluation_reports: list[str] = []
-    if evaluation_dir.is_dir():
-        for report in sorted(evaluation_dir.glob("*")):
-            if report.is_file() and report.suffix.lower() in {".json", ".csv"}:
-                name = f"evaluation/reports/{report.name}"
-                _add_file(entries, name, report, root, sanitized)
-                evaluation_reports.append(name)
+    for report in selected_reports:
+        name = f"evaluation/reports/{report.name}"
+        _add_file(entries, name, report, root, sanitized)
+        evaluation_reports.append(name)
     entries["provenance/source-commits.json"] = (json.dumps(sources, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     package_metadata = {
         "formatVersion": 1,
@@ -340,8 +502,9 @@ def create_submission(root: Path = ROOT, config_path: Path = DEFAULT_CONFIG, *, 
         "baseManifestSha256": base_verification["manifestSha256"],
         "adapter": adapter_summary,
         "sourceCommits": sources,
-        "evaluationStatus": "reports_available" if evaluation_reports else "not_run_or_not_available",
+        "evaluationStatus": _evaluation_status(selected_reports, excluded_reports),
         "evaluationReports": evaluation_reports,
+        "excludedEvaluationReports": excluded_reports,
         "humanGoldStatus": "pending_team_input",
         "teamInputsIncluded": True,
         "sanitizedTextPaths": sorted(set(sanitized)),
@@ -369,6 +532,7 @@ def create_submission(root: Path = ROOT, config_path: Path = DEFAULT_CONFIG, *, 
             "archiveSha256": checksum, "checksumFile": checksum_path.relative_to(root).as_posix(),
             "files": len(entries), "adapterStatus": adapter_summary["status"],
             "evaluationStatus": package_metadata["evaluationStatus"],
+            "excludedEvaluationReports": excluded_reports,
             "humanGoldStatus": package_metadata["humanGoldStatus"]}
 
 

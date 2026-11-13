@@ -14,10 +14,11 @@ ENV PATH="/opt/venv/bin:${PATH}"
 
 WORKDIR /workspace
 COPY requirements-serving.txt /workspace/requirements-serving.txt
+COPY requirements-training.txt /workspace/requirements-training.txt
 COPY requirements-kernels.txt /workspace/requirements-kernels.txt
 RUN python -m pip install --upgrade pip==25.3 \
     && python -m pip install --index-url https://download.pytorch.org/whl/cu128 torch==2.9.1 \
-    && python -m pip install -r /workspace/requirements-serving.txt \
+    && python -m pip install -r /workspace/requirements-serving.txt -r /workspace/requirements-training.txt \
     && python -m pip install -r /workspace/requirements-kernels.txt
 
 COPY . /workspace

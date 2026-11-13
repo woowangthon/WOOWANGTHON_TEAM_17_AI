@@ -8,7 +8,7 @@
 - 기반 파일은 `artifacts/models/` 아래에서만 사용합니다. ZIP에는 모델 가중치가 들어가지 않습니다.
 - full training adapter와 학습 로그가 아직 생성되지 않았으면 패키징 dry-run은 누락 상태를 출력하고 종료 코드 2를 반환합니다. Smoke-only adapter는 제출 자료로 거부됩니다.
 - `TEAM_INPUTS.md`의 사람 검수 gold set, 실제 조건 표본, 검토 정책, 모델 라이선스 승인과 팀 심사 자료는 아직 팀 제공 대기 항목입니다. synthetic 평가를 사람 평가로 부르지 않습니다.
-- 현 로컬 기록은 Docker Desktop/WSL 빌드·실행을 검증하지 않았습니다. GPU 학습 점검은 진행 중이며, 여기서 실제 GPU 학습 완료를 주장하지 않습니다.
+- 실제 Windows CUDA 학습 120단계와 고정 test 비교를 완료했습니다. 결과·제한은 [실행 결과](../reports/RESULTS.md)에 있습니다. Docker Desktop/WSL 빌드·실행은 검증하지 않았습니다.
 
 ## 기반 모델 다운로드
 
@@ -29,7 +29,7 @@ py -3.12 scripts/prepare_base.py
 py -3.12 -m training.train --config configs/train.json
 ```
 
-`configs/evaluation.json`은 기본적으로 외부 제공자와 Qwen service 연결을 끄고, 기존 test split에서 최대 24개 예제를 사용합니다. 이 평가도 학습 adapter와 검증된 base가 준비된 뒤 별도로 실행합니다.
+`configs/evaluation.json`은 기본적으로 외부 제공자와 Qwen service 연결을 끄고, 기존 test split에서 최대 26개 예제를 사용합니다. 실제 비교 단계별 설정은 evaluation-local/gemini/ensemble.json입니다. 외부 호출이 켜진 두 설정은 예산 안에서 실제 API를 호출하므로 개인 key와 서비스 상태를 먼저 확인합니다.
 
 ```powershell
 py -3.12 -m evaluation.run --config configs/evaluation.json
@@ -48,7 +48,7 @@ PREFERENCE_AI_PROVIDER=<gemini-or-qwen-or-ensemble>
 QWEN_PREFERENCE_URL=http://127.0.0.1:18117/v1/interpret
 ```
 
-`127.0.0.1`은 로컬 테스트 주소 예시일 뿐 서비스 식별자나 사설 네트워크 주소가 아닙니다. Docker 안에서는 Compose service name을 사용하고, 호스트의 임의 사설 IP를 모델 식별자로 기록하지 않습니다. 현재 기본 평가 설정은 external provider 호출을 비활성화합니다.
+`127.0.0.1`은 로컬 테스트 주소 예시일 뿐 모델 식별자가 아닙니다. Docker 안에서는 같은 Compose network의 service name을 사용할 수 있고, 외부 호스트의 임의 IP를 모델 식별자로 기록하지 않습니다. 기본 평가 설정은 external provider 호출을 비활성화합니다. BE의 provider/URL 설정은 BE `.env`에, native Qwen/evaluation CLI 설정은 AI `.env`에 넣습니다. 프로세스 환경변수가 우선합니다.
 
 ## 제출 패키지 생성
 
@@ -65,6 +65,10 @@ py -3.12 scripts/package_submission.py
 ```
 
 ZIP에는 adapter와 manifest, training log/config, dataset과 manifest, official base ID/revision 및 license notice, 기존 evaluation report, `TEAM_INPUTS.md`, FE·BE·AI commit SHA, 재현 안내, 그리고 ZIP 안 파일들의 상대 경로·크기·SHA-256 manifest가 포함됩니다. ZIP 자체 checksum은 `.sha256` sidecar에 기록합니다. adapter의 로컬 base 경로는 공식 모델 ID로 정리하고 report/log의 저장소 절대 경로는 상대 경로로 바꿉니다.
+
+각 저장소를 기본 이름으로 나란히 clone하면 configs/submission.json의 경로를 사용할 수 있습니다. worktree 이름이 다르면 이 설정을 로컬 artifacts/ 아래에 복사해 source_repositories만 실제 체크아웃으로 바꾸고 `--config`로 지정합니다. 실제 제출할 코드의 commit을 사용하며 원래 main의 구버전을 잘못 기록하지 않습니다.
+
+JSON과 CSV가 일치하지 않는 평가 파일, 형식/출처가 불명확한 파일, 재배포 허가가 없는 사람 평가 파일은 제외하고 이유를 기록합니다. 사람 원문·검수 metadata·정답을 ZIP에 넣는 허가로 합성 데이터 사용 허가를 대신하지 않습니다.
 
 ZIP에는 base weights, `.env`, secret, 다운로드·빌드 cache, `node_modules`, venv, 원본 절대 경로, 사용자 폴더 이름이 들어가지 않습니다. 경로를 안전하게 정리할 수 없는 텍스트 artifact는 패키징을 중단합니다. 소스 코드는 ZIP에 복사하지 않으며 FE·BE·AI commit SHA와 재현 문서를 함께 기록합니다.
 

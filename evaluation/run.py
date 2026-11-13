@@ -2,15 +2,19 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import ipaddress
 import json
 import os
+import re
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from evaluation.metrics import score_output, write_results
-from training.dataset import ROOT, load_dataset
+from training.dataset import ROOT, load_evaluation_dataset
 from serving.verification import verify_adapter_manifest, verify_base_snapshot
 
 
@@ -120,10 +124,20 @@ def _provider(name: str, row: dict[str, Any], config: dict[str, Any], qwen_servi
             return None, "skipped", "external_provider_disabled", {"provider": name}, "unavailable"
         if name == "ensemble" and not qwen_service:
             return None, "skipped", "qwen_service_not_enabled", {"provider": name}, "unavailable"
-        result = interpret_personal_draft_v2(row["originalText"], row["conditions"], provider="ensemble" if name == "ensemble" else "gemini")
+        if name == "gemini_v2":
+            from chungbuk_trip_ai.ensemble import call_gemini_v2, build_model_input, _validate_raw
+            raw = call_gemini_v2(build_model_input(row["originalText"], row["conditions"]), float(config["timeout_seconds"]))
+            try:
+                validated = _validate_raw(raw, row["originalText"], row["conditions"])
+            except Exception as exc:
+                raise InvalidModelOutput(raw) from exc
+            return validated, "ok", "", {"provider": name,
+                "modelVersion": os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")}, "valid_v2"
+        result = interpret_personal_draft_v2(row["originalText"], row["conditions"], provider="ensemble" if name == "ensemble" else "gemini",
+                                            timeout_seconds=float(config["timeout_seconds"]))
         return _raw_profile(result), "ok", "", {"provider": name,
             "modelVersion": os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite"),
-            "providersUsed": result.get("analysisMeta", {}).get("providersUsed", [])}, "valid_v2"
+            "analysisMeta": result.get("analysisMeta", {})}, "valid_v2"
     if name == "qwen_service":
         if not qwen_service:
             return None, "skipped", "qwen_service_not_enabled", {"provider": name}, "unavailable"
@@ -135,7 +149,7 @@ def _provider(name: str, row: dict[str, Any], config: dict[str, Any], qwen_servi
 def run(config_path: Path) -> dict[str, Any]:
     config = json.loads(config_path.read_text(encoding="utf-8"))
     dataset_path = (ROOT / config["dataset"]).resolve()
-    records = load_dataset(dataset_path)
+    records = load_evaluation_dataset(dataset_path)
     splits = set(config.get("splits", ["test"]))
     provenances = set(config.get("provenance", ["synthetic_rule_verified", "synthetic_ai_reviewed"]))
     selected = [r for r in records if r["split"] in splits and r["provenance"] in provenances]
@@ -146,10 +160,30 @@ def run(config_path: Path) -> dict[str, Any]:
     if not selected:
         raise ValueError("No evaluation rows selected")
     external = bool(config.get("enable_external_providers", False))
+    human_rows = [row for row in selected if row["provenance"] == "human_adjudicated"]
+    if human_rows:
+        if len(human_rows) != len(selected) or splits != {"test"} or provenances != {"human_adjudicated"}:
+            raise ValueError("Human evaluation requires an explicit, separate human-only test config")
+        if any(not row["reviewMetadata"]["permissions"]["localEvaluation"] for row in human_rows):
+            raise ValueError("Human source permission does not allow local evaluation")
+        uses_external = external and any(name in {"gemini_v1", "gemini_v2", "ensemble"} for name in config.get("providers", []))
+        if config.get("enable_qwen_service", False) and "qwen_service" in config.get("providers", []):
+            host = urlsplit(config.get("qwen_service_url", "http://127.0.0.1:18117/v1/interpret")).hostname or ""
+            try:
+                loopback = ipaddress.ip_address(host).is_loopback
+            except ValueError:
+                loopback = host.casefold() == "localhost"
+            uses_external = uses_external or not loopback
+        if uses_external and any(not row["reviewMetadata"]["permissions"]["externalAiProcessing"] for row in human_rows):
+            raise ValueError("Human source permission does not allow external AI processing")
     external_budget = int(config.get("external_call_budget", 0))
     if external and external_budget < 1:
         raise ValueError("External providers require an explicit positive external_call_budget")
     remaining_external_calls = external_budget
+    min_external_interval = float(config.get("min_external_interval_seconds", 0))
+    if not 0 <= min_external_interval <= 60:
+        raise ValueError("min_external_interval_seconds must be between 0 and 60")
+    last_external_started = 0.0
     if config.get("enable_qwen_service", False):
         os.environ["QWEN_PREFERENCE_URL"] = config.get("qwen_service_url", "http://127.0.0.1:18117/v1/interpret")
     result_files = []
@@ -172,7 +206,12 @@ def run(config_path: Path) -> dict[str, Any]:
                     base_verification = local_model.base_verification
                 except Exception as exc:
                     provider_setup_error = type(exc).__name__
-        for row in selected:
+        for index, row in enumerate(selected, 1):
+            if external and provider in {"gemini_v1", "gemini_v2", "ensemble"}:
+                pause = min_external_interval - (time.monotonic() - last_external_started)
+                if pause > 0:
+                    time.sleep(pause)
+                last_external_started = time.monotonic()
             start = time.perf_counter()
             raw_prediction = None
             output_validation = "unavailable"
@@ -194,6 +233,12 @@ def run(config_path: Path) -> dict[str, Any]:
                 raw_prediction = exc.raw_output
             except Exception as exc:
                 output, status, error_type, version, output_validation = None, "error", type(exc).__name__, {"provider": provider}, "unavailable"
+                # Persist only a status class from our sanitized provider exceptions.
+                http_code = re.search(r"HTTP ([1-5][0-9]{2})", str(exc))
+                if http_code:
+                    error_type = f"http_{http_code.group(1)}"
+                elif "rate limit reached" in str(exc):
+                    error_type = "http_429"
                 raw_prediction = None
             latency_ms = round((time.perf_counter() - start) * 1000, 3)
             if provider == "gemini_v1":
@@ -206,21 +251,34 @@ def run(config_path: Path) -> dict[str, Any]:
                            "unsupportedGranularFields": ["priorityBasis", "scope", "audience", "frequency", "approximate", "unresolvedCodes"]}
             else:
                 metrics = {"comparableAtomicMetrics": True, **score_output(row["target"], output, status)}
+            if row["provenance"] == "human_adjudicated":
+                # Gold target names can contain private user information too.
+                metrics.pop("missingHard", None)
             result_row = {"recordId": row["recordId"], "sourceFamily": row["sourceFamily"], "split": row["split"],
                          "provenance": row["provenance"], "labelStatus": row["labelStatus"], "provider": provider,
                          "latencyMs": latency_ms, "status": status, "errorType": error_type or None, "model": version,
                          "outputValidation": output_validation,
-                         "rawSchemaValid": True if output_validation == "valid_v2" else False if output_validation == "invalid_v2" else None,
-                         "semanticGuardValid": True if output_validation == "valid_v2" else False if output_validation == "invalid_v2" else None,
+                         "contractAndGuardValid": True if output_validation == "valid_v2" else False if output_validation == "invalid_v2" else None,
                          "strictMatchMetric": "not_comparable_legacy_v1" if provider == "gemini_v1" else "strict_semantic_tuple_match_proxy", **metrics}
             if row["provenance"].startswith("synthetic_"):
                 result_row["rawPrediction"] = raw_prediction
             rows.append(result_row)
+            print(json.dumps({"event": "evaluation_progress", "provider": provider, "index": index,
+                              "count": len(selected), "recordId": row["recordId"], "status": status,
+                              "latencyMs": latency_ms}), file=sys.stderr, flush=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         output_dir = (ROOT / config.get("output_dir", "reports/runs/evaluation")).resolve()
         json_path = output_dir / f"{stamp}-{provider}.json"
         csv_path = output_dir / f"{stamp}-{provider}.csv"
+        from training.dataset import digest_json
+        from chungbuk_trip_ai.ensemble import MODEL_OUTPUT_SCHEMA_V2, SYSTEM_INSTRUCTION_V2
         metadata = {"provider": provider, "createdAt": datetime.now(timezone.utc).isoformat(),
+                    "containsHumanData": bool(human_rows),
+                    "publicRedistributionAllowed": not human_rows or all(
+                        row["reviewMetadata"]["permissions"]["publicRedistribution"] for row in human_rows),
+                    "evaluationConfig": config, "evaluationConfigSha256": digest_json(config),
+                    "contractSchemaSha256": digest_json(MODEL_OUTPUT_SCHEMA_V2),
+                    "systemPromptSha256": digest_json(SYSTEM_INSTRUCTION_V2),
                     "dataPath": str(dataset_path.relative_to(ROOT)), "dataManifest": str(dataset_path.with_suffix(".manifest.json").relative_to(ROOT)),
                     "splits": sorted(splits), "externalProvidersEnabled": external,
                     "externalCallBudget": external_budget, "externalCallsRemaining": remaining_external_calls,
@@ -239,6 +297,8 @@ def run(config_path: Path) -> dict[str, Any]:
 
 
 def main() -> int:
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / ".env", override=False, interpolate=False)
     parser = argparse.ArgumentParser(description="Evaluate local base/adapter and explicitly enabled provider baselines.")
     parser.add_argument("--config", type=Path, default=ROOT / "configs" / "evaluation.json")
     args = parser.parse_args()

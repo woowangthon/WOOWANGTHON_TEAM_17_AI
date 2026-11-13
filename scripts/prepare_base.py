@@ -60,12 +60,14 @@ def _snapshot_files(model_info: Any) -> dict[str, dict[str, Any]]:
         if not isinstance(name, str) or "/" in name or "\\" in name:
             continue
         lfs = _field(sibling, "lfs")
-        oid = _field(lfs, "oid") if lfs else None
+        lfs_sha256 = _field(lfs, "sha256") if lfs else None
+        if lfs_sha256 is None and lfs:
+            lfs_sha256 = _field(lfs, "oid")
         size = _field(sibling, "size")
         lfs_size = _field(lfs, "size") if lfs else None
         if lfs and not isinstance(size, int):
             size = lfs_size
-        result[name] = {"size": size, "lfsSha256": oid, "lfsSize": lfs_size}
+        result[name] = {"size": size, "lfsSha256": lfs_sha256, "lfsSize": lfs_size}
     return result
 
 

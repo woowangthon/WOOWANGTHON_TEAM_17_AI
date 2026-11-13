@@ -8,10 +8,10 @@
 
 1. 학습 예시를 바꿔 쓰지 말고 새 여행 요청을 직접 작성한다. 가능하면 팀원이 각각 작성한 원문을 모은다.
 2. 입력 당시의 공통 여행 조건을 `conditions`에 적고, 원문에서 확인되는 조건만 `target`에 표시한다. 해석할 수 없으면 `unresolved`에 남긴다.
-3. 작성자와 다른 검수자가 숫자·부정·필수/선호·하루/여행 전체·개인/단체 범위를 확인한다. 검수자 식별자는 익명 코드로 적어도 된다.
-4. 원문의 사용 권한, 검수자 코드와 검수 일시를 채운다. 빈 값이나 `pending`은 검수 완료가 아니다.
+3. `reviewMetadata.annotatorId`와 `reviewMetadata.reviewerId`에 서로 다른 `anon-...` 익명 코드를 적고, 작성자와 별도 검수자가 숫자·부정·필수/선호·하루/여행 전체·개인/단체 범위를 확인한다.
+4. 실제 `sourceOwner`, `sourceLicense`, 시간대가 포함된 `reviewedAt`을 적는다. `attestations`는 사람이 새 원문을 쓰고 독립적으로 검수했을 때만 true로 둔다. `permissions`의 local evaluation 허가를 확인하고 외부 AI 처리·공개 재배포는 받은 허가만 true로 설정한다. 빈 값이나 `pending`은 검수 완료가 아니다.
 
-설명은 [사람 평가 자료 안내](data/human/README.md)와 [원자 조건 규격](docs/atomic-contract.md)에 있다. 작성 전까지 인간 평가 수치는 빈 값으로 유지한다. 평가용 원문은 학습 파일에 합치지 않는다.
+설명은 [사람 평가 자료 안내](data/human/README.md)와 [원자 조건 규격](docs/atomic-contract.md)에 있다. 작성 후 `python scripts/import_human.py --input data/human/inbox.local.json --output data/human/human-evaluation-v2.jsonl`로 test-only 자료를 검증·봉인한다. 생성 manifest는 현재 합성 데이터 SHA-256을 기록하며, 사람 평가 JSONL은 학습 데이터로 합치지 않는다. 작성 전까지 인간 평가 수치는 빈 값으로 유지한다. 평가용 원문은 학습 파일에 합치지 않는다.
 
 ## 실제 사용 검수 기록
 

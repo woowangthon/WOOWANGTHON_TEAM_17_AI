@@ -10,8 +10,8 @@
   "evaluation_directory": "reports/runs/evaluation",
   "source_repositories": {
     "AI": ".",
-    "FE": "../ensemble-FE",
-    "BE": "../ensemble-BE"
+    "FE": "../WOOWANGTHON_TEAM_17_FE",
+    "BE": "../WOOWANGTHON_TEAM_17_BE"
   },
   "output": "artifacts/submission"
 }

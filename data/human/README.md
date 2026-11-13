@@ -1,11 +1,22 @@
-# 새 사람이 작성하는 독립 평가 자료
+# Human evaluation annotations
 
-`annotation-template.json`의 빈 항목을 채울 때만 실제 검수 자료가 생긴다. 파일을 복사했거나 AI가 초안을 만든 것만으로 검수 완료가 되지 않는다.
+The tracked annotation template is blank on purpose. It does not contain human labels. Copy it to `inbox.local.json`, add genuinely new cases, and keep the completed file local.
 
-`sourceId`는 원문 식별자, `sourceFamily`는 같은 상황·문장 변형을 묶는 식별자다. 같은 원문의 변형은 모두 같은 family로 묶는다. 개인 이름·전화번호·민감한 예약 정보가 포함되지 않은 입력을 사용한다.
+Each row needs a unique `sourceId` and a `sourceFamily` that groups related wording or situations. Use a new family for every independent case. Do not rewrite any synthetic or model-generated example. The importer checks exact source, family, ID, digest and normalized-text overlap with the current synthetic fixture. It also flags close whitespace-normalized character matches at ratio 0.82 or higher. These checks can catch direct copying and close wording; they do not establish semantic independence.
 
-`target`은 모델의 원시 v2 출력과 동일하다. 조건의 모든 필드, 원문에 실제 있는 연속 근거, 숫자와 범위를 확인한다. 답을 알 수 없다는 이유로 임의의 걷기 시간이나 필수 조건을 만들지 않는다. 모델과 서버가 만드는 id·digest·origin은 정답에 넣지 않는다.
+Write `target` in the same raw v2 format the runtime expects. Keep evidence grounded in the original request, preserve ambiguity in `unresolved`, and never invent numbers, priorities, or scope. The importer runs the runtime validator before sealing records.
 
-`review`에는 실제 작성자와 별도 검수자 코드, 검수 완료 시각(시간대 포함), 원문의 사용 허가 근거를 기록한다. 원문 제공·검수가 끝나기 전까지 파일은 로컬 초안으로 보관한다.
+For `reviewMetadata`, use distinct pseudonymous IDs such as `anon-author01` and `anon-reviewer01`; do not include names, email addresses, or phone numbers. `reviewedAt` must be ISO-8601 with a timezone offset. Set all three attestations to `true` only after a human wrote the source independently, it was not adapted from the synthetic/model data, and a second person reviewed the label. The importer verifies these statements were provided; it does not verify people’s identity or that the attestations are true.
 
-이 자료는 합성 학습 세트와 분리해 test로 평가한다. 이미 모델 개발·프롬프트 수정에 사용한 문장은 독립 test로 재사용하지 않는다. 검수자가 실제로 판단하기 전에는 `human_adjudicated`라는 표기를 붙이지 않는다.
+`sourceOwner` and `sourceLicense` must state the real owner and the actual basis for using the source. The permissions object is structured: local evaluation must be explicitly allowed; `externalAiProcessing` and `publicRedistribution` must accurately reflect granted permission and default to `false`. These permission values are attestations too. Do not set them based on assumptions.
+
+From the repository root, copy the template and import only after review:
+
+```powershell
+Copy-Item data/human/annotation-template.json data/human/inbox.local.json
+python scripts/import_human.py --input data/human/inbox.local.json --output data/human/human-evaluation-v2.jsonl
+```
+
+The importer creates a `kind: human-evaluation`, `testOnly: true` manifest bound to the exact current synthetic JSONL SHA-256. The output rows are all `human_adjudicated` and `split: test`; the regular training loader rejects this extended human schema. If the synthetic fixture changes later, re-import and review the human annotations before using them. Keep annotation JSON, imported JSONL, and manifest out of Git.
+
+Evaluation figures from these cases are separate from synthetic proxy metrics. Do not call them expert or population-level accuracy without an appropriate study design.

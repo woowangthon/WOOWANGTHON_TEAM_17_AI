@@ -1,4 +1,17 @@
 # Ignore generated model/training artifacts, keep config/source data tracked.
+.git
+.venv
+.venv-*
+venv
+**/__pycache__
+**/*.pyc
+**/.env
+**/.env.*
+!.env.example
+**/*.local.json
+data/human/*.jsonl
+data/human/*.manifest.json
+reports
 **/models/**
 **/artifacts/**
 **/runs/**
