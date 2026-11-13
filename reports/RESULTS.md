@@ -12,6 +12,7 @@ Qwen3.5-4B의 실제 LoRA 학습, 두 제공자 병렬 분석, FE/BE 개인 조�
 | 데이터 | 합성 원문 205개, family 97개; 사람이 검수한 정답 0개 |
 | 분리 | train 168 / dev 11 / test 26; family 경계 분리 |
 | 학습 | bf16 기반 + FP32 LoRA, rank 16, all-linear, accumulation 4, 120 optimizer steps |
+| LoRA 크기 | scalar parameter 32,464,896개, tensor 496개; 가중치 파일 129,927,008 bytes |
 | 장치 | RTX 4080 SUPER 16GB, Ryzen 7800X3D, RAM 약 64GB, Windows Python 3.12.6 |
 | 메모리 처리 | 동결된 공유 embedding/head는 CPU FP32, decoder/LoRA는 CUDA; loss의 gradient 경로 보존 |
 | 시간 | 학습 로그 시작부터 선택 adapter 재검증까지 약 9분 23초; 다운로드·사전 실패/준비 시간 제외 |
@@ -20,6 +21,8 @@ Qwen3.5-4B의 실제 LoRA 학습, 두 제공자 병렬 분석, FE/BE 개인 조�
 | 가중치 SHA-256 | 9407b10fa08a8fcfe152be558ef8c002acc0561a07c300b4149024a202fb062d |
 
 Gemini를 학습시킨 것이 아니며 두 모델을 스태킹 학습한 것도 아니다. Qwen에 지도 미세조정한 별도 adapter를 만들고, 추론 때 Gemini와 독립 분석한 뒤 규칙으로 대조한다. 합성 정답은 규칙으로 작성·검증했으며 Gemini 교사 정답이나 사람 검수 자료로 표시하지 않는다.
+
+학습 로그의 과거 placement.trainableParameterCount=496은 tensor 수를 뜻한다. scalar parameter 수와 혼동하지 않는다. 메모리 수치도 이번 짧은 합성 입력에서의 실측이며 4,096-token 최대 길이 전체를 사용한 용량 보장은 아니다.
 
 ## 고정 test 비교
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import csv
 import inspect
+import io
+import os
 import json
 import tempfile
 import unittest
@@ -79,6 +81,30 @@ class SubmissionToolingTests(unittest.TestCase):
             self.assertNotIn(b"Users", clean)
             with self.assertRaises(SubmissionError):
                 sanitize_text(json.dumps({"path": r"C:\Users\someone\weights"}).encode(), root, "report.json")
+
+    def test_csv_sanitizer_redacts_nested_json_paths_and_rejects_other_user_paths(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "ensemble-AI"
+            root.mkdir()
+            repo_path = str(root / "artifacts" / "fixture.txt")
+            csv_stream = io.StringIO(newline="")
+            csv.writer(csv_stream).writerows([
+                ["payload"], [json.dumps({"nested": [{"path": repo_path}]})],
+            ])
+            csv_text = csv_stream.getvalue()
+            clean, changed = sanitize_text(csv_text.encode("utf-8-sig"), root, "report.csv")
+            self.assertTrue(changed)
+            self.assertNotIn(str(root).encode(), clean)
+            parsed_csv = list(csv.reader(clean.decode("utf-8-sig").splitlines()))
+            parsed_value = json.loads(parsed_csv[1][0])
+            self.assertEqual(parsed_value, {"nested": [{"path": "." + os.sep + str(Path("artifacts") / "fixture.txt")}]})
+
+            private_stream = io.StringIO(newline="")
+            csv.writer(private_stream).writerows([
+                ["payload"], [json.dumps({"nested": [{"path": r"C:\Users\someone\private.txt"}]})],
+            ])
+            with self.assertRaises(SubmissionError):
+                sanitize_text(private_stream.getvalue().encode("utf-8-sig"), root, "report.csv")
 
     def test_file_manifest_uses_relative_entries_and_sha256_bytes(self):
         manifest = create_file_manifest({"docs/readme.md": b"ok"})

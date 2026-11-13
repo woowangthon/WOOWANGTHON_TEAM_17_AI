@@ -223,7 +223,10 @@
       "dev": 11,
       "test": 26
     },
-    "adapterDirectoryBytes": 149934864
+    "adapterDirectoryBytes": 149934864,
+    "loraTensorCount": 496,
+    "loraScalarParameters": 32464896,
+    "metadataNote": "Historical placement.trainableParameterCount counts tensors, not scalar parameters."
   },
   "limitations": [
     "Synthetic rule labels only, not human gold.",

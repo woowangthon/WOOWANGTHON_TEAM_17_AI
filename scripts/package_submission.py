@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import io
 import json
 import re
 import subprocess
@@ -123,6 +124,38 @@ def sanitize_text(data: bytes, root: Path, name: str) -> tuple[bytes, bool]:
             cleaned.append(json.dumps(safe, ensure_ascii=False, separators=(",", ":")))
             changed = changed or item_changed
         return ("\n".join(cleaned) + "\n").encode("utf-8"), changed
+    if name.endswith(".csv"):
+        try:
+            text = data.decode("utf-8-sig")
+            rows = list(csv.reader(io.StringIO(text, newline=""), strict=True))
+        except (UnicodeDecodeError, csv.Error) as exc:
+            raise SubmissionError("Malformed CSV text artifact") from exc
+        changed = False
+        sanitized_rows: list[list[str]] = []
+        for row_index, row in enumerate(rows):
+            sanitized_row: list[str] = []
+            for cell in row:
+                if row_index == 0:
+                    clean, cell_changed = _redact_root(cell, root)
+                else:
+                    try:
+                        parsed = json.loads(cell)
+                    except (json.JSONDecodeError, TypeError):
+                        parsed = None
+                        is_json_object = False
+                    else:
+                        is_json_object = isinstance(parsed, (dict, list))
+                    if is_json_object:
+                        clean_value, cell_changed = _sanitize_json_value(parsed, root)
+                        clean = json.dumps(clean_value, ensure_ascii=False)
+                    else:
+                        clean, cell_changed = _redact_root(cell, root)
+                sanitized_row.append(clean)
+                changed = changed or cell_changed
+            sanitized_rows.append(sanitized_row)
+        output = io.StringIO(newline="")
+        csv.writer(output).writerows(sanitized_rows)
+        return output.getvalue().encode("utf-8-sig"), changed
     clean, changed = _redact_root(text, root)
     return clean.encode("utf-8"), changed
 
@@ -477,6 +510,7 @@ def create_submission(root: Path = ROOT, config_path: Path = DEFAULT_CONFIG, *, 
         ("evaluation/evaluation-gemini.json", root / "configs" / "evaluation-gemini.json"),
         ("evaluation/evaluation-ensemble.json", root / "configs" / "evaluation-ensemble.json"),
         ("evidence/RESULTS.md", root / "reports" / "RESULTS.md"),
+        ("evidence/VALIDATION.md", root / "reports" / "VALIDATION.md"),
         ("evidence/EVALUATION_SUMMARY.json", root / "reports" / "EVALUATION_SUMMARY.json"),
         ("evidence/PRESENTATION_NOTES.md", root / "reports" / "PRESENTATION_NOTES.md"),
         ("evidence/ui/README.md", root / "reports" / "ui" / "README.md"),
