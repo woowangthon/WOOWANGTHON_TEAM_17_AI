@@ -1,0 +1,15 @@
+{
+  "provider": "qwen_base",
+  "baseRevision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "inputKind": "synthetic_smoke",
+  "originalText": "여행 중 초밥을 한 번 먹고 싶어요.",
+  "conditions": {},
+  "inferenceSeconds": 3.937999999965541,
+  "totalSeconds": 17.405999999959022,
+  "generatedTokens": 55,
+  "peakAllocatedBytes": 8705447936,
+  "outputText": "{\n  \"food\": [\n    {\n      \"item\": \"초밥\",\n      \"evidence\": \"여행 중 초밥을 한 번 먹고 싶어요.\",\n      \"tripExactCount\": 1\n    }\n  ]\n}",
+  "status": "invalid_output",
+  "errorType": "ProviderError",
+  "message": "Provider returned invalid atomic output"
+}

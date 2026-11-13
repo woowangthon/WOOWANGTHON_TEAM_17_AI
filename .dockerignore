@@ -1,0 +1,12 @@
+# Ignore generated model/training artifacts, keep config/source data tracked.
+**/models/**
+**/artifacts/**
+**/runs/**
+**/cache/**
+**/*.safetensors
+**/*.bin
+**/*.pt
+**/*.pth
+**/*.gguf
+**/*.log
+!requirements*.txt

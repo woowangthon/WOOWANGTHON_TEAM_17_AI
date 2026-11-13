@@ -1,0 +1,3 @@
+# Dataset byte hashes must survive a Windows clone with core.autocrlf enabled.
+data/generated/*.jsonl text eol=lf
+data/generated/*.manifest.json text eol=lf

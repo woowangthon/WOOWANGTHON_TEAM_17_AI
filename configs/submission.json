@@ -1,0 +1,17 @@
+{
+  "model_id": "Qwen/Qwen3.5-4B",
+  "base_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "base_path": "artifacts/models/qwen3.5-4b-base",
+  "adapter_path": "artifacts/training/full/adapter-best",
+  "training_run": "artifacts/training/full",
+  "training_config": "configs/train.json",
+  "evaluation_config": "configs/evaluation.json",
+  "dataset": "data/generated/preference-v2.jsonl",
+  "evaluation_directory": "reports/runs/evaluation",
+  "source_repositories": {
+    "AI": ".",
+    "FE": "../ensemble-FE",
+    "BE": "../ensemble-BE"
+  },
+  "output": "artifacts/submission"
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "sourceId": "human-001",
+    "sourceFamily": "human-new-situation-001",
+    "originalText": "",
+    "conditions": {},
+    "target": {"conditions": [], "unresolved": [], "scheduleItems": []},
+    "sourceOwner": "",
+    "sourceLicense": "",
+    "review": {"annotatorId": "", "reviewerId": "", "adjudicatedAt": "", "sourcePermission": ""}
+  }
+]

@@ -4,14 +4,39 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "chungbuk-trip-ai"
-version = "0.4.0"
+version = "0.5.0"
 description = "Gemini based parsing and candidate itinerary drafting for Chungbuk trips"
 requires-python = ">=3.12"
 dependencies = ["python-dotenv>=1,<2"]
 
 [project.scripts]
 chungbuk-trip-preview = "chungbuk_trip_ai.trip_preview:main"
+preference-dataset = "training.validate_dataset:main"
+preference-train = "training.train:main"
+preference-evaluate = "evaluation.run:main"
+preference-qwen-serve = "serving.server:serve"
+
+[project.optional-dependencies]
+training = [
+    "torch==2.9.1",
+    "transformers==5.23.0",
+    "peft==0.21.3",
+    "accelerate==1.15.0",
+    "safetensors==0.8.0",
+    "sentencepiece==0.2.1",
+]
+serving = [
+    "torch==2.9.1",
+    "transformers==5.23.0",
+    "peft==0.21.3",
+    "safetensors==0.8.0",
+]
+training-kernels = [
+    "triton==3.5.1; sys_platform == 'linux'",
+    "triton-windows==3.5.1.post24; sys_platform == 'win32'",
+    "flash-linear-attention==0.5.2",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["chungbuk_trip_ai*"]
+include = ["chungbuk_trip_ai*", "training*", "serving*", "evaluation*"]

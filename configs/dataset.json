@@ -1,0 +1,6 @@
+{
+  "seed": 20261114,
+  "output": "data/generated/preference-v2.jsonl",
+  "provenance": "synthetic_rule_verified",
+  "familySplit": {"train": 0.8, "dev": 0.1, "test": 0.1}
+}

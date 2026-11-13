@@ -1,0 +1,58 @@
+services:
+  preference-train:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      platforms: [linux/amd64]
+    profiles: ["train"]
+    working_dir: /workspace
+    command: ["-m", "training.train", "--config", "configs/train.json"]
+    environment:
+      PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+    volumes:
+      - ./artifacts:/workspace/artifacts
+      - ./data:/workspace/data:ro
+      - ./reports:/workspace/reports
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  preference-qwen:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      platforms: [linux/amd64]
+    profiles: ["serve"]
+    working_dir: /workspace
+    command: ["-m", "serving.server"]
+    environment:
+      QWEN_MODEL_PATH: /workspace/artifacts/models/qwen3.5-4b-base
+      QWEN_MODEL_REVISION: "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
+      QWEN_ADAPTER_PATH: ${QWEN_ADAPTER_PATH:-/workspace/artifacts/training/full/adapter-best}
+      QWEN_ALLOW_BASE_MODEL: "false"
+      QWEN_BIND_HOST: 0.0.0.0
+      QWEN_BIND_PORT: "18117"
+      QWEN_MAX_INPUT_TOKENS: "4096"
+      QWEN_MAX_NEW_TOKENS: "2048"
+      QWEN_REQUEST_TIMEOUT_SECONDS: "60"
+    volumes:
+      - ./artifacts:/workspace/artifacts:ro
+    ports:
+      - "127.0.0.1:18117:18117"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18117/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 180s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

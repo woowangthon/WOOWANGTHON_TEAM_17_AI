@@ -1,0 +1,86 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "inputKind": "synthetic_user_example",
+  "originalText": "산 가고 싶어, 밥은 초밥을 한 번은 먹고 싶어, 하루에 3곳 정도만 가고 싶어. 식당은 아침 점심 저녁 3번.",
+  "conditions": {
+    "startDate": "2026-11-13",
+    "endDate": "2026-11-15"
+  },
+  "raw": {
+    "conditions": [
+      {
+        "dimension": "activity",
+        "target": "산",
+        "polarity": "prefer",
+        "priority": "preferred",
+        "priorityBasis": "unspecified",
+        "scope": "trip",
+        "audience": "unspecified",
+        "frequency": null,
+        "value": null,
+        "unit": null,
+        "approximate": false,
+        "evidence": "산 가고 싶어"
+      },
+      {
+        "dimension": "food",
+        "target": "초밥",
+        "polarity": "prefer",
+        "priority": "preferred",
+        "priorityBasis": "unspecified",
+        "scope": "trip",
+        "audience": "unspecified",
+        "frequency": {
+          "count": 1,
+          "operator": "exact",
+          "period": "trip"
+        },
+        "value": 1,
+        "unit": "번",
+        "approximate": false,
+        "evidence": "밥은 초밥을 한 번은 먹고 싶어"
+      },
+      {
+        "dimension": "visit_count",
+        "target": "장소",
+        "polarity": "prefer",
+        "priority": "preferred",
+        "priorityBasis": "unspecified",
+        "scope": "day",
+        "audience": "unspecified",
+        "frequency": {
+          "count": 3,
+          "operator": "target",
+          "period": "day"
+        },
+        "value": 3,
+        "unit": "곳",
+        "approximate": true,
+        "evidence": "하루에 3곳 정도만 가고 싶어"
+      },
+      {
+        "dimension": "meal_plan",
+        "target": "아침 점심 저녁",
+        "polarity": "prefer",
+        "priority": "preferred",
+        "priorityBasis": "unspecified",
+        "scope": "day",
+        "audience": "unspecified",
+        "frequency": {
+          "count": 3,
+          "operator": "exact",
+          "period": "day"
+        },
+        "value": 3,
+        "unit": "번",
+        "approximate": false,
+        "evidence": "식당은 아침 점심 저녁 3번"
+      }
+    ],
+    "unresolved": [],
+    "scheduleItems": []
+  },
+  "status": "success",
+  "canonicalConditionCount": 4,
+  "elapsedSeconds": 2.405999999959022
+}

@@ -1,0 +1,21 @@
+{
+  "dataset": "data/generated/preference-v2.jsonl",
+  "base_model": "artifacts/models/qwen3.5-4b-base",
+  "base_model_id": "Qwen/Qwen3.5-4B",
+  "base_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "output_dir": "artifacts/training/full",
+  "seed": 20261114,
+  "precision": "bf16",
+  "placement": "cpu_shared_embedding_head",
+  "max_seq_length": 4096,
+  "max_steps": 120,
+  "eval_steps": 10,
+  "gradient_accumulation_steps": 4,
+  "learning_rate": 0.00002,
+  "weight_decay": 0.0,
+  "max_grad_norm": 1.0,
+  "lora_r": 16,
+  "lora_alpha": 16,
+  "lora_dropout": 0.0,
+  "target_modules": "all-linear"
+}
