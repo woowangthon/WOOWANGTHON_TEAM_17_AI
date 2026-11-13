@@ -490,6 +490,7 @@ def create_submission(root: Path = ROOT, config_path: Path = DEFAULT_CONFIG, *, 
         sources[label] = _git_commit(path) if path.is_dir() else None
 
     for archive_name, path in [
+        ("README.md", root / "docs" / "submission-handoff.md"),
         ("provenance/base-manifest.json", base_manifest_path),
         ("provenance/base-download.json", base_download_path),
         ("notices/Qwen-Qwen3.5-4B/LICENSE", license_path),
@@ -516,6 +517,10 @@ def create_submission(root: Path = ROOT, config_path: Path = DEFAULT_CONFIG, *, 
         ("evidence/ui/README.md", root / "reports" / "ui" / "README.md"),
         ("evidence/ui/preference-v2-desktop.jpg", root / "reports" / "ui" / "preference-v2-desktop.jpg"),
         ("evidence/ui/preference-v2-mobile.jpg", root / "reports" / "ui" / "preference-v2-mobile.jpg"),
+        ("evidence/live/stack-acceptance-clean-context.json", root / "reports" / "live" / "stack-acceptance-clean-context.json"),
+        ("evidence/live/stack-acceptance.json", root / "reports" / "live" / "stack-acceptance.json"),
+        ("evidence/live/stack-food-diagnostic.json", root / "reports" / "live" / "stack-food-diagnostic.json"),
+        ("data/human/README.md", root / "data" / "human" / "README.md"),
     ]:
         if path.is_file():
             _add_file(entries, archive_name, path, root, sanitized)
