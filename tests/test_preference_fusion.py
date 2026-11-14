@@ -198,3 +198,75 @@ def test_same_sentence_does_not_lend_pizza_count_to_sushi():
     profile = run(source, raw([sushi, pizza]), raw([sushi, pizza]), judge)["atomicPreferences"]
     assert {c["target"]: c["frequency"] for c in profile["conditions"]} == {"초밥": None, "피자": frequency(2)}
     assert [note["code"] for note in profile["unresolved"]] == ["ambiguous_quantity"]
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_unanchored_strict_prefix_expansion_uses_the_single_anchored_target(reverse):
+    source = "\ud638\uc218\uc5d0 \uac00\uace0 \uc2f6\uc5b4."
+    anchored = atom("\ud638\uc218", source, dimension="activity")
+    expanded = atom("\ud638\uc218\uacf5\uc6d0", source, dimension="activity")
+    outputs = (raw([anchored]), raw([expanded]))
+    first, second = reversed(outputs) if reverse else outputs
+    profile = run(source, first, second)["atomicPreferences"]
+    only, = profile["conditions"]
+    assert only["target"] == "\ud638\uc218"
+    assert only["evidence"] == source.rstrip(".")
+    assert not profile["unresolved"]
+    assert validate_atomic_preferences(profile, source, {}) == profile
+
+
+def test_two_literal_prefix_related_targets_remain_separate_conditions():
+    source = "\uc0b0\uacfc \uc0b0\ucc45\uc744 \uc990\uae30\uace0 \uc2f6\uc5b4."
+    mountain = atom("\uc0b0", source, dimension="activity")
+    walk = atom("\uc0b0\ucc45", source, dimension="activity")
+    profile = run(source, raw([mountain, walk]), raw([mountain, walk]))["atomicPreferences"]
+    assert {condition["target"] for condition in profile["conditions"]} == {"\uc0b0", "\uc0b0\ucc45"}
+
+
+def test_unrelated_nonliteral_concept_still_uses_target_review():
+    source = "\ubc14\ub2f7\uac00\uc5d0\uc11c \uc26c\uace0 \uc2f6\uc5b4."
+    beach = atom("\ubc14\ub2f7\uac00", source, dimension="activity")
+    rest = atom("\ud734\uc2dd", source, dimension="activity")
+
+    def abstain(batch, _):
+        assert len(batch["groups"]) == 1
+        assert "target" in batch["groups"][0]["options"]
+        return {"decisions": []}
+
+    reviewer = Mock(side_effect=abstain)
+    profile = run(source, raw([beach, rest]), raw([beach, rest]), reviewer)["atomicPreferences"]
+    assert [condition["target"] for condition in profile["conditions"]] == ["\ubc14\ub2f7\uac00"]
+    assert any(note["code"] == "ambiguous_target" for note in profile["unresolved"])
+    reviewer.assert_called_once()
+
+
+def test_prefix_related_targets_in_different_passages_remain_separate():
+    first_passage = "\uccab\ub0a0 \ud638\uc218\uc5d0 \uac00\uace0 \uc2f6\uc5b4."
+    second_passage = "\ub458\uc9f8 \ub0a0 \ud638\uc218\uacf5\uc6d0\uc5d0 \uac00\uace0 \uc2f6\uc5b4."
+    source = f"{first_passage} {second_passage}"
+    lake = atom("\ud638\uc218", first_passage, dimension="activity")
+    park = atom("\ud638\uc218\uacf5\uc6d0", second_passage, dimension="activity")
+    profile = run(source, raw([lake, park]), raw([lake, park]))["atomicPreferences"]
+    assert [condition["target"] for condition in profile["conditions"]] == ["\ud638\uc218", "\ud638\uc218\uacf5\uc6d0"]
+
+
+def test_visit_count_unit_and_generic_name_align_but_keep_target_review():
+    source = "\ud558\ub8e8\uc5d0 3\uacf3 \uc815\ub3c4 \uac00\uace0 \uc2f6\uc5b4."
+    by_unit = atom("\uacf3", source, dimension="visit_count", frequency=frequency(3, "target", "day"),
+                   scope="day", approximate=True)
+    generic = atom("\ubc29\ubb38 \uc7a5\uc18c", source, dimension="visit_count", frequency=frequency(3, "target", "day"),
+                   scope="day", approximate=True)
+
+    def choose_unit(batch, _):
+        group, = batch["groups"]
+        options = group["options"]["target"]
+        assert set(options) == {"\uacf3", "\ubc29\ubb38 \uc7a5\uc18c"}
+        return {"decisions": [{"group": group["group"], "field": "target",
+                               "choice": options.index("\uacf3"), "evidence": source.rstrip(".")}]}
+
+    reviewer = Mock(side_effect=choose_unit)
+    profile = run(source, raw([by_unit]), raw([generic]), reviewer)["atomicPreferences"]
+    only, = profile["conditions"]
+    assert only["target"] == "\uacf3" and only["frequency"] == frequency(3, "target", "day")
+    assert not profile["unresolved"]
+    reviewer.assert_called_once()

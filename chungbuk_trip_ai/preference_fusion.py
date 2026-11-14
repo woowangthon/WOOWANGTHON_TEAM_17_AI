@@ -62,6 +62,10 @@ def _anchored(atom: dict, text: str) -> bool:
             return True
     if dim == "visit_count" and _norm(target) in {"방문장소", "장소", "관광지", "방문횟수", "방문장소수"}:
         return bool(re.search(r"(?:\d|한|두|세|네)\s*(?:곳|군데)", text))
+    if dim == "visit_count" and atom.get("frequency") is not None and _norm(target) in {"\uacf3", "\uad70\ub370"}:
+        unit = "\uad70\ub370" if _norm(target) == "\uad70\ub370" else "\uacf3"
+        number = r"(?:\d+|\ud55c|\ub450|\uc138|\ub124|\ub2e4\uc12f|\uc5ec\uc12f|\uc77c\uacf1|\uc5ec\ub35f|\uc544\ud649|\uc5f4)"
+        return bool(re.search(number + r"\s*" + unit, text))
     if dim == "meal_plan" and _norm(target) in MEAL_TARGETS:
         return bool(re.search(r"식사|식당|아침|점심|저녁", text))
     return False
@@ -352,6 +356,39 @@ class Claim:
         return result
 
 
+def _coalesce_prefix_expansions(claims: list[Claim]) -> None:
+    """Join one unsupported target expansion to its sole anchored sibling."""
+    changed = True
+    while changed:
+        changed = False
+        for left_index, left in enumerate(claims):
+            if left.booking:
+                continue
+            for right_index in range(left_index + 1, len(claims)):
+                right = claims[right_index]
+                if (right.booking or left.offset != right.offset or left.passage != right.passage
+                        or left.rows[0]["dimension"] != right.rows[0]["dimension"]):
+                    continue
+                rows = [*left.rows, *right.rows]
+                if len({row.get("evidence") for row in rows}) != 1:
+                    continue
+                targets = {_norm(row["target"]) for row in rows}
+                if len(targets) != 2:
+                    continue
+                first, second = sorted(targets, key=len)
+                if not first or not second.startswith(first):
+                    continue
+                anchored_targets = {_norm(row["target"]) for row in rows if _anchored(row, left.passage)}
+                if len(anchored_targets) != 1:
+                    continue
+                left.rows.extend(right.rows)
+                del claims[right_index]
+                changed = True
+                break
+            if changed:
+                break
+
+
 REVIEW_SCHEMA = {"type": "object", "properties": {"decisions": {"type": "array", "items": {
     "type": "object", "properties": {"group": {"type": "integer"}, "field": {"type": "string"},
     "choice": {"type": "integer"}, "evidence": {"type": "string"}},
@@ -452,6 +489,7 @@ def fuse(outputs: dict, source: str, conditions: dict, review: Callable | None) 
                 group.rows.append(row)
             else:
                 claims.append(Claim(offset, passage, [row]))
+    _coalesce_prefix_expansions(claims)
     claims.sort(key=lambda c: c.offset)
     for claim in claims:
         claim.shared_clause = any(other is not claim and other.offset == claim.offset for other in claims)
