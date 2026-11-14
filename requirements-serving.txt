@@ -1,0 +1,4 @@
+torch==2.9.1
+transformers==5.23.0
+peft==0.21.3
+safetensors==0.8.0

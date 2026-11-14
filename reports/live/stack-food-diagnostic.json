@@ -1,0 +1,73 @@
+{
+  "fixture": "synthetic development source",
+  "results": [
+    {
+      "provider": "gemini",
+      "status": "invalid",
+      "causes": [
+        {
+          "type": "ProviderError",
+          "message": "Provider returned invalid atomic output"
+        },
+        {
+          "type": "ValueError",
+          "message": "Atomic evidence is absent from source"
+        }
+      ],
+      "raw": {
+        "conditions": [
+          {
+            "dimension": "food",
+            "target": "초밥",
+            "polarity": "prefer",
+            "priority": "preferred",
+            "priorityBasis": "unspecified",
+            "scope": "trip",
+            "audience": "unspecified",
+            "frequency": {
+              "count": 1,
+              "operator": "exact",
+              "period": "trip"
+            },
+            "value": null,
+            "unit": null,
+            "approximate": false,
+            "evidence": "여행 중 초밥을 한 번 먹고 싶어요."
+          },
+          {
+            "dimension": "atmosphere",
+            "target": "조용한",
+            "polarity": "prefer",
+            "priority": "preferred",
+            "priorityBasis": "unspecified",
+            "scope": "trip",
+            "audience": "unspecified",
+            "frequency": null,
+            "value": null,
+            "unit": null,
+            "approximate": false,
+            "evidence": "조용한 숙소"
+          }
+        ],
+        "unresolved": [],
+        "scheduleItems": [
+          {
+            "kind": "lodging",
+            "scope": null,
+            "placeQuery": "조용한 숙소",
+            "date": null,
+            "time": null,
+            "endDate": null,
+            "endTime": null,
+            "evidence": "조용한 숙소"
+          }
+        ]
+      }
+    },
+    {
+      "provider": "qwen",
+      "status": "valid",
+      "conditions": 1
+    }
+  ]
+}

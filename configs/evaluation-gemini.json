@@ -1,0 +1,28 @@
+{
+  "dataset": "data/generated/preference-v2.jsonl",
+  "splits": [
+    "test"
+  ],
+  "provenance": [
+    "synthetic_rule_verified",
+    "synthetic_ai_reviewed"
+  ],
+  "providers": [
+    "gemini_v1",
+    "gemini_v2"
+  ],
+  "base_model": "artifacts/models/qwen3.5-4b-base",
+  "base_model_id": "Qwen/Qwen3.5-4B",
+  "base_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "adapter": "artifacts/training/full/adapter-best",
+  "max_new_tokens": 1024,
+  "max_examples": 26,
+  "timeout_seconds": 60,
+  "enable_external_providers": true,
+  "enable_qwen_service": false,
+  "qwen_service_url": "http://127.0.0.1:18117/v1/interpret",
+  "output_dir": "reports/runs/evaluation",
+  "external_call_budget": 52,
+  "min_external_interval_seconds": 5.0,
+  "run_purpose": "paced_sealed_evaluation_after_unpaced_availability_diagnostic"
+}

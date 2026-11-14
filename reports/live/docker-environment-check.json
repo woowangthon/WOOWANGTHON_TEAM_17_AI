@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "packagesMatched": 63,
+  "container": "ensemble-ai-preference-qwen-1",
+  "envFileInImage": false,
+  "artifactFilesInImage": 0,
+  "gitInImage": false
+}

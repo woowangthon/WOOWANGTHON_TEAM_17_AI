@@ -1,0 +1,5 @@
+# Optional Qwen3.5 hybrid linear-attention acceleration.
+# The Linux container receives Triton from the Linux PyPI wheel only.
+triton==3.5.1; sys_platform == "linux"
+triton-windows==3.5.1.post24; sys_platform == "win32"
+flash-linear-attention==0.5.2

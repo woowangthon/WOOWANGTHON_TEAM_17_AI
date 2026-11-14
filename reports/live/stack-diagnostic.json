@@ -1,0 +1,105 @@
+{
+  "fixture": "synthetic development source",
+  "results": [
+    {
+      "provider": "gemini",
+      "status": "invalid",
+      "causes": [
+        {
+          "type": "ProviderError",
+          "message": "Provider returned invalid atomic output"
+        },
+        {
+          "type": "ValueError",
+          "message": "Atomic evidence is absent from source"
+        }
+      ],
+      "raw": {
+        "conditions": [
+          {
+            "dimension": "activity",
+            "target": "산",
+            "polarity": "prefer",
+            "priority": "preferred",
+            "priorityBasis": "unspecified",
+            "scope": "trip",
+            "audience": "unspecified",
+            "frequency": null,
+            "value": null,
+            "unit": null,
+            "approximate": false,
+            "evidence": "산에 가고 싶어."
+          },
+          {
+            "dimension": "food",
+            "target": "초밥",
+            "polarity": "prefer",
+            "priority": "preferred",
+            "priorityBasis": "unspecified",
+            "scope": "trip",
+            "audience": "unspecified",
+            "frequency": {
+              "count": 1,
+              "operator": "exact",
+              "period": "trip"
+            },
+            "value": null,
+            "unit": null,
+            "approximate": false,
+            "evidence": "초밥은 한 번 먹고 싶어."
+          },
+          {
+            "dimension": "visit_count",
+            "target": "곳",
+            "polarity": "prefer",
+            "priority": "preferred",
+            "priorityBasis": "unspecified",
+            "scope": "day",
+            "audience": "unspecified",
+            "frequency": {
+              "count": 3,
+              "operator": "target",
+              "period": "day"
+            },
+            "value": 3,
+            "unit": "곳",
+            "approximate": true,
+            "evidence": "하루에 3곳 정도만 가고 싶어."
+          },
+          {
+            "dimension": "atmosphere",
+            "target": "조용한 숙소",
+            "polarity": "prefer",
+            "priority": "preferred",
+            "priorityBasis": "unspecified",
+            "scope": "trip",
+            "audience": "unspecified",
+            "frequency": null,
+            "value": null,
+            "unit": null,
+            "approximate": false,
+            "evidence": "조용한 숙소"
+          }
+        ],
+        "unresolved": [],
+        "scheduleItems": [
+          {
+            "kind": "lodging",
+            "scope": null,
+            "placeQuery": "조용한 숙소",
+            "date": null,
+            "time": null,
+            "endDate": null,
+            "endTime": null,
+            "evidence": "조용한 숙소"
+          }
+        ]
+      }
+    },
+    {
+      "provider": "qwen",
+      "status": "valid",
+      "conditions": 3
+    }
+  ]
+}

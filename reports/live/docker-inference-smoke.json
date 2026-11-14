@@ -1,0 +1,88 @@
+{
+  "createdAt": "2026-11-14T08:57:30.453000+00:00",
+  "status": "passed",
+  "httpStatus": 200,
+  "latencyMs": 30988.374,
+  "containerName": "ensemble-ai-preference-qwen-1",
+  "containerId": "22b5d7eb775c",
+  "imageId": "sha256:95e3b4e7eb9e336a42c3aeec18bec109974857e407752554a24b34431f3e9d94",
+  "imageSourceCommit": "a91afc726cf4478a4d7cc35779d611c2567a20d6",
+  "gpuDevice": "cuda:0",
+  "adapterLoaded": true,
+  "model": "Qwen/Qwen3.5-4B",
+  "baseRevision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "adapterManifestSha256": "88877243bf9c5368e7828c5e7b8231d901d8e20b1c16aa905bd4564347165adb",
+  "artifactsMountedReadOnly": true,
+  "hostPortBinding": [
+    {
+      "HostIp": "127.0.0.1",
+      "HostPort": "18117"
+    }
+  ],
+  "offlineFlagsSet": true,
+  "geminiKeyEnvPresent": false,
+  "fixture": "synthetic development case; not a quality benchmark",
+  "originalText": "여행 중 초밥을 한 번 먹고 싶어요.",
+  "conditions": {
+    "region": "충북 단양",
+    "startDate": "2026-11-14",
+    "endDate": "2026-11-16",
+    "transport": "car",
+    "lodging": null,
+    "fixedSchedule": null
+  },
+  "rawPrediction": {
+    "conditions": [
+      {
+        "approximate": false,
+        "audience": "unspecified",
+        "dimension": "food",
+        "evidence": "여행 중 초밥을 한 번 먹고 싶어요.",
+        "frequency": {
+          "count": 1,
+          "operator": "exact",
+          "period": "trip"
+        },
+        "polarity": "prefer",
+        "priority": "preferred",
+        "priorityBasis": "unspecified",
+        "scope": "trip",
+        "target": "초밥",
+        "unit": null,
+        "value": null
+      }
+    ],
+    "scheduleItems": [],
+    "unresolved": []
+  },
+  "fullContainerTrainingRun": false,
+  "geminiCalled": false,
+  "warmRepeat": {
+    "httpStatus": 200,
+    "latencyMs": 8728.155,
+    "rawPrediction": {
+      "conditions": [
+        {
+          "approximate": false,
+          "audience": "unspecified",
+          "dimension": "food",
+          "evidence": "여행 중 초밥을 한 번 먹고 싶어요.",
+          "frequency": {
+            "count": 1,
+            "operator": "exact",
+            "period": "trip"
+          },
+          "polarity": "prefer",
+          "priority": "preferred",
+          "priorityBasis": "unspecified",
+          "scope": "trip",
+          "target": "초밥",
+          "unit": null,
+          "value": null
+        }
+      ],
+      "scheduleItems": [],
+      "unresolved": []
+    }
+  }
+}

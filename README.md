@@ -2,6 +2,31 @@
 
 자유 입력 여행 메모와 고정 여행 조건을 받아 장소 검색 전 확인용 미리보기를 만드는 Python 패키지입니다. Gemini 응답은 `pending_review` 상태로 반환하며, 사용자 확인과 장소 검색·점수화는 이 패키지의 범위에 포함되지 않습니다.
 
+## Gemini + Qwen 취향 분석 v2
+
+`interpret_personal_draft_v2`는 같은 원문을 Gemini와 로컬 Qwen에 독립적으로 전달하고, 조건의 부정·강도·횟수·하루/여행 전체 범위·원문 근거를 보존합니다. 정상 응답 두 개의 의미가 일치한 조건만 자동 적용하고 해석 차이는 `unresolved`로 남깁니다. 모델 간 일치는 정확도 확률이나 사람 검수가 아닙니다. 기존 v1 함수는 유지합니다.
+
+```python
+from chungbuk_trip_ai import interpret_personal_draft_v2
+
+result = interpret_personal_draft_v2(original_text, conditions, provider="ensemble")
+```
+
+BE는 기존 개인 취향 API의 `X-Preference-Schema: 2`로 사용합니다. 원문·조건 버전, 멱등성 영수증, 수동 수정과 개인 정보 공개 범위는 BE가 검증합니다. FE에서는 같은 입력 화면에서 조건을 수정·저장·직접 확정합니다. 걷기 제한이 없으면 AI가 숫자를 추측하거나 필수 추가 질문을 만들지 않습니다.
+
+- 규격: [원자 조건 v2](docs/atomic-contract.md)
+- 데이터·학습·평가: [재현 절차](docs/reproducibility.md)
+- 모델 다운로드·제출 ZIP: [제출 자료 준비](docs/submission.md)
+- 사람이 나중에 채울 원문·정답: [TEAM_INPUTS.md](TEAM_INPUTS.md)
+- 브라우저 검수 범위: [화면 검수 기록](reports/ui/README.md)
+- 실제 학습·비교·실패: [실행 결과](reports/RESULTS.md)
+- Docker GPU 서빙 확인: [컨테이너 검증](reports/DOCKER_VERIFICATION.md)
+- 추후 PPT에 사용할 근거: [발표 메모](reports/PRESENTATION_NOTES.md)
+
+단체 취향의 필수 조건·개인별 제한·동등한 1인 기여·충돌 후보는 BE의 비공개 `groupConditions` 인수 자료에 보존합니다. 새 원자 조건의 장소 선택·날짜 배분·경로 최적화 적용은 일정 알고리즘 담당자의 후속 연동 범위입니다. 이 변경은 TOPTW·2-opt·relocate를 구현하거나 그 제약 준수를 보장하지 않습니다.
+
+공식 Qwen3.5-4B 고정 revision과 별도 LoRA adapter를 사용합니다. 기반 가중치는 Git에 넣지 않습니다. IP나 Docker 내부 주소 대신 코드 커밋·모델 revision·adapter SHA-256·설정과 의존성으로 환경을 재현합니다. 실제 모델·학습·평가 기록과 Docker/WSL 미검증 항목은 제출 보고서에 구분해서 남깁니다.
+
 ## 설치
 
 Python 3.12 이상을 사용합니다.

@@ -1,0 +1,26 @@
+[
+  {
+    "sourceId": "human-case-001",
+    "sourceFamily": "human-family-001",
+    "originalText": "",
+    "conditions": {},
+    "target": {"conditions": [], "unresolved": [], "scheduleItems": []},
+    "sourceOwner": "",
+    "sourceLicense": "",
+    "reviewMetadata": {
+      "annotatorId": "anon-author01",
+      "reviewerId": "anon-reviewer01",
+      "reviewedAt": "",
+      "attestations": {
+        "humanAuthored": false,
+        "independentlySourced": false,
+        "independentlyReviewed": false
+      },
+      "permissions": {
+        "localEvaluation": false,
+        "externalAiProcessing": false,
+        "publicRedistribution": false
+      }
+    }
+  }
+]

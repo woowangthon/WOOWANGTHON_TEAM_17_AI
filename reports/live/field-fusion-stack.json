@@ -1,0 +1,159 @@
+{
+  "createdAt": "2026-11-14T10:24:55.265573+00:00",
+  "status": "passed",
+  "developmentCase": "fusion",
+  "commonTextDefaultsCleared": false,
+  "fixture": "synthetic-source/SQLite/test-auth",
+  "productionMySql": false,
+  "productionAuth": false,
+  "browserTest": false,
+  "liveModels": true,
+  "providerRequestBudget": 3,
+  "fieldReviews": [
+    {
+      "fields": [
+        "quantity"
+      ],
+      "responseReceived": true
+    }
+  ],
+  "analysisMeta": {
+    "provider": "ensemble",
+    "providersUsed": [
+      "gemini",
+      "qwen"
+    ],
+    "degraded": false,
+    "reviewRequired": false,
+    "requestId": "599371dc-3409-48d1-9d70-dc6794665412"
+  },
+  "steps": [
+    {
+      "method": "GET",
+      "path": "/api/v1/trips/{tripId}/preferences/me",
+      "status": 200,
+      "latencyMs": 4.256
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/trips/{tripId}/preferences/me",
+      "status": 200,
+      "latencyMs": 3.921
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/trips/{tripId}/preferences/me/interpret",
+      "status": 200,
+      "latencyMs": 50793.086
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/trips/{tripId}/preferences/me",
+      "status": 200,
+      "latencyMs": 3.772
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/trips/{tripId}/preferences/me/confirm",
+      "status": 200,
+      "latencyMs": 3.672
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/trips/{tripId}/preferences/me",
+      "status": 200,
+      "latencyMs": 2.234
+    }
+  ],
+  "exampleProfile": {
+    "schemaVersion": 2,
+    "sourceDigest": "a0fd39faceb6e0dd265cd362b0c69b734ee4a7f6d4dcf91f90f1da63aa610855",
+    "status": "current",
+    "conditions": [
+      {
+        "dimension": "activity",
+        "target": "산",
+        "polarity": "prefer",
+        "priority": "preferred",
+        "priorityBasis": "unspecified",
+        "scope": "trip",
+        "audience": "unspecified",
+        "frequency": null,
+        "value": null,
+        "unit": null,
+        "approximate": false,
+        "evidence": "산 가고 싶어",
+        "origin": "model",
+        "id": "ap-a0fd39faceb6-001"
+      },
+      {
+        "dimension": "food",
+        "target": "초밥",
+        "polarity": "prefer",
+        "priority": "preferred",
+        "priorityBasis": "unspecified",
+        "scope": "trip",
+        "audience": "unspecified",
+        "frequency": {
+          "count": 1,
+          "operator": "min",
+          "period": "trip"
+        },
+        "value": null,
+        "unit": null,
+        "approximate": false,
+        "evidence": "밥은 초밥을 한 번은 먹고 싶어",
+        "origin": "model",
+        "id": "ap-a0fd39faceb6-002"
+      },
+      {
+        "dimension": "visit_count",
+        "target": "방문 장소",
+        "polarity": "prefer",
+        "priority": "preferred",
+        "priorityBasis": "unspecified",
+        "scope": "day",
+        "audience": "unspecified",
+        "frequency": {
+          "count": 3,
+          "operator": "target",
+          "period": "day"
+        },
+        "value": null,
+        "unit": null,
+        "approximate": true,
+        "evidence": "하루에 3곳 정도만 가고 싶어",
+        "origin": "model",
+        "id": "ap-a0fd39faceb6-003"
+      },
+      {
+        "dimension": "meal_plan",
+        "target": "아침 점심 저녁",
+        "polarity": "prefer",
+        "priority": "preferred",
+        "priorityBasis": "unspecified",
+        "scope": "day",
+        "audience": "unspecified",
+        "frequency": {
+          "count": 3,
+          "operator": "exact",
+          "period": "day"
+        },
+        "value": null,
+        "unit": null,
+        "approximate": false,
+        "evidence": "식당은 아침 점심 저녁 3번",
+        "origin": "model",
+        "id": "ap-a0fd39faceb6-004"
+      }
+    ],
+    "unresolved": []
+  },
+  "atomicConditions": 4,
+  "unresolved": 0,
+  "origins": {
+    "model": 4
+  },
+  "confirmation": "confirmed",
+  "restoredExactly": true
+}

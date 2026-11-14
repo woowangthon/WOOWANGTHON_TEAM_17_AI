@@ -1,0 +1,32 @@
+{
+  "seed": 20261114,
+  "splits": {
+    "train": 0.8,
+    "dev": 0.1,
+    "test": 0.1
+  },
+  "dataset": "data/generated/preference-v2.jsonl",
+  "sha256": "0019cde72115fb7c6ba950b8928ba83f30e00da904407073d787d0a539d0d32f",
+  "contractSchemaHash": "d720ad86f262ab4f4ee5ae1ee34d60f53befeccd9ac1a4ad27875d338c9cb514",
+  "systemPromptSha256": "893527aa48b3fd2ee2bebab65040ee39125b9694388cd2645b0b8e01d84f8116",
+  "summary": {
+    "records": 205,
+    "families": 97,
+    "sourceRecords": 205,
+    "bySplit": {
+      "train": 168,
+      "dev": 11,
+      "test": 26
+    },
+    "bySplitFamilies": {
+      "train": 77,
+      "dev": 11,
+      "test": 9
+    },
+    "byProvenance": {
+      "synthetic_rule_verified": 205,
+      "synthetic_ai_reviewed": 0,
+      "human_adjudicated": 0
+    }
+  }
+}

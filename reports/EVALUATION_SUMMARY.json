@@ -1,0 +1,349 @@
+{
+  "date": "2026-11-14",
+  "datasetKind": "synthetic_rule_verified",
+  "humanAdjudicatedRecords": 0,
+  "selection": "family-separated test; checkpoint selected only by dev loss; prompt/model not tuned after test",
+  "metric": "strict semantic tuple match proxy, not human accuracy",
+  "conditionsExpected": 24,
+  "testRecords": 26,
+  "testFamilies": 9,
+  "testGoldUnresolvedRecords": 0,
+  "results": {
+    "base": {
+      "source": "reports/runs/evaluation/20261113T230531Z-base.json",
+      "sourceSha256": "84a890c8fee3ffff09823759bd70c2396fa8cf24593d37fbc5d51022838ef9ea",
+      "aggregate": {
+        "tp": 1,
+        "fp": 18,
+        "fn": 23,
+        "expectedCount": 24,
+        "predictedCount": 19,
+        "hardExpected": 7,
+        "hardOmissions": 7,
+        "unresolvedExpected": 0,
+        "unresolvedPredicted": 1,
+        "unresolvedTP": 0,
+        "unresolvedFP": 1,
+        "unresolvedFN": 0,
+        "scheduleExpected": 2,
+        "schedulePredicted": 0,
+        "scheduleTP": 0,
+        "scheduleFP": 0,
+        "scheduleFN": 2,
+        "examples": 26,
+        "validOutputs": 20,
+        "invalidOutputs": 6,
+        "skipped": 0,
+        "comparableExamples": 26,
+        "nonComparableExamples": 0,
+        "precision": 0.05263157894736842,
+        "recall": 0.041666666666666664,
+        "f1": 0.04651162790697675,
+        "hardOmissionRate": 1.0
+      },
+      "latencyP50Ms": 3371.9934999999996,
+      "latencyP95Ms": 5336.348,
+      "degradedOutputs": 0,
+      "fullyPairedOutputs": null
+    },
+    "trained": {
+      "source": "reports/runs/evaluation/20261113T230815Z-trained.json",
+      "sourceSha256": "13b1f6fadc6b74daeee0b15cfef3e6ac247b81164dfd9d4c849bfb99dedbea54",
+      "aggregate": {
+        "tp": 11,
+        "fp": 12,
+        "fn": 13,
+        "expectedCount": 24,
+        "predictedCount": 23,
+        "hardExpected": 7,
+        "hardOmissions": 5,
+        "unresolvedExpected": 0,
+        "unresolvedPredicted": 1,
+        "unresolvedTP": 0,
+        "unresolvedFP": 1,
+        "unresolvedFN": 0,
+        "scheduleExpected": 2,
+        "schedulePredicted": 2,
+        "scheduleTP": 2,
+        "scheduleFP": 0,
+        "scheduleFN": 0,
+        "examples": 26,
+        "validOutputs": 25,
+        "invalidOutputs": 1,
+        "skipped": 0,
+        "comparableExamples": 26,
+        "nonComparableExamples": 0,
+        "precision": 0.4782608695652174,
+        "recall": 0.4583333333333333,
+        "f1": 0.4680851063829787,
+        "hardOmissionRate": 0.7142857142857143
+      },
+      "latencyP50Ms": 5898.066,
+      "latencyP95Ms": 10986.952,
+      "degradedOutputs": 0,
+      "fullyPairedOutputs": null
+    },
+    "gemini_v1": {
+      "source": "reports/runs/evaluation/20261113T230811Z-gemini_v1.json",
+      "sourceSha256": "d273fe774661747d65784878077faf02b90e83c2644793f79550a257e2b85385",
+      "aggregate": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "expectedCount": 0,
+        "predictedCount": 0,
+        "hardExpected": 0,
+        "hardOmissions": 0,
+        "unresolvedExpected": 0,
+        "unresolvedPredicted": 0,
+        "unresolvedTP": 0,
+        "unresolvedFP": 0,
+        "unresolvedFN": 0,
+        "scheduleExpected": 0,
+        "schedulePredicted": 0,
+        "scheduleTP": 0,
+        "scheduleFP": 0,
+        "scheduleFN": 0,
+        "examples": 26,
+        "validOutputs": 26,
+        "invalidOutputs": 0,
+        "skipped": 0,
+        "comparableExamples": 0,
+        "nonComparableExamples": 26,
+        "precision": null,
+        "recall": null,
+        "f1": null,
+        "hardOmissionRate": null
+      },
+      "latencyP50Ms": 1779.1475,
+      "latencyP95Ms": 2488.89,
+      "degradedOutputs": 0,
+      "fullyPairedOutputs": null
+    },
+    "gemini_v2": {
+      "source": "reports/runs/evaluation/20261113T231021Z-gemini_v2.json",
+      "sourceSha256": "2aa0d91ece4d75eff49e2083004ad818f17947c55a485a7679ac39b99d3b81e3",
+      "aggregate": {
+        "tp": 11,
+        "fp": 14,
+        "fn": 13,
+        "expectedCount": 24,
+        "predictedCount": 25,
+        "hardExpected": 7,
+        "hardOmissions": 3,
+        "unresolvedExpected": 0,
+        "unresolvedPredicted": 1,
+        "unresolvedTP": 0,
+        "unresolvedFP": 1,
+        "unresolvedFN": 0,
+        "scheduleExpected": 2,
+        "schedulePredicted": 2,
+        "scheduleTP": 1,
+        "scheduleFP": 1,
+        "scheduleFN": 1,
+        "examples": 26,
+        "validOutputs": 23,
+        "invalidOutputs": 3,
+        "skipped": 0,
+        "comparableExamples": 26,
+        "nonComparableExamples": 0,
+        "precision": 0.44,
+        "recall": 0.4583333333333333,
+        "f1": 0.4489795918367347,
+        "hardOmissionRate": 0.42857142857142855
+      },
+      "latencyP50Ms": 1304.3429999999998,
+      "latencyP95Ms": 2067.333,
+      "degradedOutputs": 0,
+      "fullyPairedOutputs": null
+    },
+    "ensemble": {
+      "source": "reports/runs/evaluation/20261113T231450Z-ensemble.json",
+      "sourceSha256": "5e234ceecfbcc72d7bbc2c067da00df645184353a57876c4acb62c00a74e7117",
+      "aggregate": {
+        "tp": 8,
+        "fp": 2,
+        "fn": 16,
+        "expectedCount": 24,
+        "predictedCount": 10,
+        "hardExpected": 7,
+        "hardOmissions": 5,
+        "unresolvedExpected": 0,
+        "unresolvedPredicted": 22,
+        "unresolvedTP": 0,
+        "unresolvedFP": 22,
+        "unresolvedFN": 0,
+        "scheduleExpected": 2,
+        "schedulePredicted": 1,
+        "scheduleTP": 1,
+        "scheduleFP": 0,
+        "scheduleFN": 1,
+        "examples": 26,
+        "validOutputs": 25,
+        "invalidOutputs": 1,
+        "skipped": 0,
+        "comparableExamples": 26,
+        "nonComparableExamples": 0,
+        "precision": 0.8,
+        "recall": 0.3333333333333333,
+        "f1": 0.47058823529411764,
+        "hardOmissionRate": 0.7142857142857143
+      },
+      "latencyP50Ms": 6471.276,
+      "latencyP95Ms": 11258.544,
+      "degradedOutputs": 2,
+      "fullyPairedOutputs": 23
+    }
+  },
+  "training": {
+    "baseModel": "Qwen/Qwen3.5-4B",
+    "baseRevision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "dataSha256": "0019cde72115fb7c6ba950b8928ba83f30e00da904407073d787d0a539d0d32f",
+    "configSha256": "8f995b33f495f010b78a4f17d7f46f9107a98d4d7a931b634ff20f71d4143953",
+    "sourceFilesSha256": "cc66415e2c5f7908a906921ee177ea0175effe5a86f53837e578a44744b2a41d",
+    "systemPromptSha256": "893527aa48b3fd2ee2bebab65040ee39125b9694388cd2645b0b8e01d84f8116",
+    "repositoryRevision": "27a4d7a7903b8e496ab5561d393c4b1f84c3b146",
+    "workingTreeDirty": false,
+    "seed": 20261114,
+    "bestStep": 120,
+    "bestDevLoss": 0.1128359485499638,
+    "selectedDevLoss": 0.1128359485499638,
+    "peakAllocatedBytes": 8270648320,
+    "versions": {
+      "python": "3.12.6 (tags/v3.12.6:a4a2d2b, Sep  6 2024, 20:11:23) [MSC v.1940 64 bit (AMD64)]",
+      "torch": "2.9.1+cu128",
+      "transformers": "5.23.0",
+      "peft": "0.21.3",
+      "cuda": "12.8",
+      "device": "NVIDIA GeForce RTX 4080 SUPER"
+    },
+    "adapterWeightsSha256": "9407b10fa08a8fcfe152be558ef8c002acc0561a07c300b4149024a202fb062d",
+    "splitCounts": {
+      "train": 168,
+      "dev": 11,
+      "test": 26
+    },
+    "adapterDirectoryBytes": 149934864,
+    "loraTensorCount": 496,
+    "loraScalarParameters": 32464896,
+    "metadataNote": "Historical placement.trainableParameterCount counts tensors, not scalar parameters."
+  },
+  "limitations": [
+    "Synthetic rule labels only, not human gold.",
+    "Only 9 held-out families; 26 rows are not 26 independent situations.",
+    "Test targets have no unresolved examples; ambiguity handling is not validated by this score.",
+    "Target wording, priority/scope and redundant value fields can change strict scores even when some meaning matches.",
+    "Ensemble had 23 fully paired successes, 2 degraded successes and 1 total failure; its aggregate includes fallback.",
+    "Gemini v1 DTO cannot be scored with v2 atomic F1.",
+    "Initial unpaced requests suffered availability errors and are excluded from final quality comparison.",
+    "The original Windows quality evaluation did not include production MySQL/auth/live-model browser acceptance or Docker execution; subsequent Docker serving validation is recorded separately.",
+    "New atomic/day/count conditions are not yet enforced by the friend-owned route optimizer."
+  ],
+  "liveStack": {
+    "focused": {
+      "createdAt": "2026-11-13T23:21:05.786007+00:00",
+      "status": "passed",
+      "developmentCase": "food",
+      "commonTextDefaultsCleared": true,
+      "fixture": "synthetic-source/SQLite/test-auth",
+      "productionMySql": false,
+      "productionAuth": false,
+      "browserTest": false,
+      "liveModels": true,
+      "externalRequestBudget": 2,
+      "analysisMeta": {
+        "provider": "ensemble",
+        "providersUsed": [
+          "gemini",
+          "qwen"
+        ],
+        "degraded": false,
+        "reviewRequired": false,
+        "requestId": "7e3f49d3-9d05-42d4-9118-43f7618a9944"
+      },
+      "steps": [
+        {
+          "method": "GET",
+          "path": "/api/v1/trips/{tripId}/preferences/me",
+          "status": 200,
+          "latencyMs": 4.176
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v1/trips/{tripId}/preferences/me",
+          "status": 200,
+          "latencyMs": 3.781
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/trips/{tripId}/preferences/me/interpret",
+          "status": 200,
+          "latencyMs": 6414.833
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v1/trips/{tripId}/preferences/me",
+          "status": 200,
+          "latencyMs": 3.242
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/trips/{tripId}/preferences/me/confirm",
+          "status": 200,
+          "latencyMs": 3.169
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/trips/{tripId}/preferences/me",
+          "status": 200,
+          "latencyMs": 2.083
+        }
+      ],
+      "atomicConditions": 1,
+      "unresolved": 0,
+      "origins": {
+        "model": 1
+      },
+      "confirmation": "confirmed",
+      "restoredExactly": true
+    },
+    "contextContaminationFailure": {
+      "createdAt": "2026-11-13T23:18:56.997366+00:00",
+      "status": "failed",
+      "developmentCase": "food",
+      "fixture": "synthetic-source/SQLite/test-auth",
+      "productionMySql": false,
+      "productionAuth": false,
+      "browserTest": false,
+      "liveModelsRequested": true,
+      "errorType": "RuntimeError",
+      "steps": [
+        {
+          "method": "GET",
+          "path": "/api/v1/trips/{tripId}/preferences/me",
+          "status": 200,
+          "latencyMs": 4.285
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v1/trips/{tripId}/preferences/me",
+          "status": 200,
+          "latencyMs": 3.635
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/trips/{tripId}/preferences/me/interpret",
+          "status": 503,
+          "latencyMs": 6836.247
+        }
+      ]
+    }
+  },
+  "followUpValidation": {
+    "dockerGpuServingVerified": true,
+    "dockerFullTrainingRerun": false,
+    "report": "reports/DOCKER_VERIFICATION.md",
+    "inferenceRecord": "reports/live/docker-inference-smoke.json",
+    "doesNotReplaceWindowsQualityEvaluation": true
+  }
+}

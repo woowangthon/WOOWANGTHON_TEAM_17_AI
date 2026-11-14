@@ -1,0 +1,40 @@
+{
+  "results": [
+    {
+      "provider": "trained",
+      "json": "reports\\runs\\smoke-reload\\20261113T224943Z-trained.json",
+      "csv": "reports\\runs\\smoke-reload\\20261113T224943Z-trained.csv"
+    }
+  ],
+  "aggregate": {
+    "trained": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 2,
+      "expectedCount": 2,
+      "predictedCount": 1,
+      "hardExpected": 1,
+      "hardOmissions": 1,
+      "unresolvedExpected": 0,
+      "unresolvedPredicted": 0,
+      "unresolvedTP": 0,
+      "unresolvedFP": 0,
+      "unresolvedFN": 0,
+      "scheduleExpected": 0,
+      "schedulePredicted": 0,
+      "scheduleTP": 0,
+      "scheduleFP": 0,
+      "scheduleFN": 0,
+      "examples": 1,
+      "validOutputs": 1,
+      "invalidOutputs": 0,
+      "skipped": 0,
+      "comparableExamples": 1,
+      "nonComparableExamples": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "hardOmissionRate": 1.0
+    }
+  }
+}

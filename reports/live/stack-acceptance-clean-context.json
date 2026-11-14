@@ -1,0 +1,67 @@
+{
+  "createdAt": "2026-11-13T23:21:05.786007+00:00",
+  "status": "passed",
+  "developmentCase": "food",
+  "commonTextDefaultsCleared": true,
+  "fixture": "synthetic-source/SQLite/test-auth",
+  "productionMySql": false,
+  "productionAuth": false,
+  "browserTest": false,
+  "liveModels": true,
+  "externalRequestBudget": 2,
+  "analysisMeta": {
+    "provider": "ensemble",
+    "providersUsed": [
+      "gemini",
+      "qwen"
+    ],
+    "degraded": false,
+    "reviewRequired": false,
+    "requestId": "7e3f49d3-9d05-42d4-9118-43f7618a9944"
+  },
+  "steps": [
+    {
+      "method": "GET",
+      "path": "/api/v1/trips/{tripId}/preferences/me",
+      "status": 200,
+      "latencyMs": 4.176
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/trips/{tripId}/preferences/me",
+      "status": 200,
+      "latencyMs": 3.781
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/trips/{tripId}/preferences/me/interpret",
+      "status": 200,
+      "latencyMs": 6414.833
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/trips/{tripId}/preferences/me",
+      "status": 200,
+      "latencyMs": 3.242
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/trips/{tripId}/preferences/me/confirm",
+      "status": 200,
+      "latencyMs": 3.169
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/trips/{tripId}/preferences/me",
+      "status": 200,
+      "latencyMs": 2.083
+    }
+  ],
+  "atomicConditions": 1,
+  "unresolved": 0,
+  "origins": {
+    "model": 1
+  },
+  "confirmation": "confirmed",
+  "restoredExactly": true
+}
