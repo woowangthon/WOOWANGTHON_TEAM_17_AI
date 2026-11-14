@@ -1,0 +1,23 @@
+{
+  "dataset": "data/generated/preference-v2-review.jsonl",
+  "base_model": "artifacts/models/qwen3.5-4b-base",
+  "base_model_id": "Qwen/Qwen3.5-4B",
+  "base_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "output_dir": "artifacts/training/continued-20261115",
+  "initial_adapter": "artifacts/training/full/adapter-best",
+  "initial_adapter_manifest_sha256": "88877243bf9c5368e7828c5e7b8231d901d8e20b1c16aa905bd4564347165adb",
+  "seed": 20261114,
+  "precision": "bf16",
+  "placement": "cpu_shared_embedding_head",
+  "max_seq_length": 4096,
+  "max_steps": 45,
+  "eval_steps": 10,
+  "gradient_accumulation_steps": 4,
+  "learning_rate": 5e-06,
+  "weight_decay": 0.0,
+  "max_grad_norm": 1.0,
+  "lora_r": 16,
+  "lora_alpha": 16,
+  "lora_dropout": 0.0,
+  "target_modules": "all-linear"
+}
