@@ -21,8 +21,14 @@ RUN python -m pip install --upgrade pip==25.3 \
     && python -m pip install -r /workspace/requirements-serving.txt -r /workspace/requirements-training.txt \
     && python -m pip install -r /workspace/requirements-kernels.txt
 
+# Keep compiler headers after the expensive, cacheable Python dependency layer.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      gcc libc6-dev python3.12-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY . /workspace
-RUN python -m pip install --no-deps -e /workspace
+RUN python -m pip install -r /workspace/requirements-lock.linux.txt -e /workspace \
+    && python -m pip check
 
 EXPOSE 18117
 ENTRYPOINT ["python"]
