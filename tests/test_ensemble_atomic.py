@@ -83,12 +83,12 @@ class EnsembleTests(unittest.TestCase):
         with self.assertRaises(ProviderError):
             interpret_personal_draft_v2("숲길을 좋아해요", {}, providers={"gemini": lambda p, t: raw([atom])})
 
-    def test_provider_disagreement_stays_unresolved(self):
+    def test_source_polarity_resolves_disagreement(self):
         a = condition("숲길은 꼭 가고 싶어요", priority="required", priorityBasis="explicit")
         b = condition("숲길은 꼭 가고 싶어요", polarity="avoid", priority="required", priorityBasis="explicit")
         result = interpret_personal_draft_v2(a["evidence"], {}, provider="ensemble", providers={"gemini": lambda p, t: raw([a]), "qwen": lambda p, t: raw([b])})
-        self.assertEqual(result["atomicPreferences"]["conditions"], [])
-        self.assertIn("provider_disagreement", [x["code"] for x in result["atomicPreferences"]["unresolved"]])
+        self.assertEqual(result["atomicPreferences"]["conditions"][0]["polarity"], "prefer")
+        self.assertEqual(result["atomicPreferences"]["unresolved"], [])
 
     def test_degraded_and_total_failure_are_typed_and_honest(self):
         a = condition("숲길을 좋아해요")
@@ -116,12 +116,12 @@ class EnsembleTests(unittest.TestCase):
         self.assertTrue(result["analysisMeta"]["degraded"])
         self.assertLess(time.monotonic() - started, 0.1)
 
-    def test_single_provider_omission_does_not_silently_apply_a_hard_constraint(self):
+    def test_one_sided_explicit_hard_constraint_is_retained(self):
         atom = condition("숲길은 꼭 가고 싶어요", priority="required", priorityBasis="explicit")
         result = interpret_personal_draft_v2(atom["evidence"], {}, provider="ensemble",
             providers={"gemini": lambda p, t: raw([atom]), "qwen": lambda p, t: raw()})
-        self.assertEqual(result["atomicPreferences"]["conditions"], [])
-        self.assertTrue(result["analysisMeta"]["reviewRequired"])
+        self.assertEqual(result["atomicPreferences"]["conditions"][0]["priority"], "required")
+        self.assertFalse(result["analysisMeta"]["reviewRequired"])
 
     def test_food_avoid_is_not_projected_as_a_food_recommendation(self):
         atom = condition("땅콩 알레르기가 있어요", dimension="food", target="땅콩", polarity="avoid", priority="required", priorityBasis="explicit")

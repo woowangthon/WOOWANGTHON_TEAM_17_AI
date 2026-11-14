@@ -215,7 +215,8 @@ def run(config_path: Path) -> dict[str, Any]:
             start = time.perf_counter()
             raw_prediction = None
             output_validation = "unavailable"
-            external_cost = 2 if provider == "ensemble" else 1 if provider in {"gemini_v1", "gemini_v2"} else 0
+            # Reserve the worst case up front: independent pair and one selective review.
+            external_cost = 3 if provider == "ensemble" else 1 if provider in {"gemini_v1", "gemini_v2"} else 0
             try:
                 if external and external_cost and remaining_external_calls < external_cost:
                     output, status, error_type, version, output_validation = None, "skipped", "external_call_budget_exhausted", {"provider": provider}, "unavailable"

@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from chungbuk_trip_ai.ensemble import MODEL_OUTPUT_SCHEMA_V2, SYSTEM_INSTRUCTION_V2, _validate_raw, build_model_input
+from chungbuk_trip_ai.ensemble import MODEL_OUTPUT_SCHEMA_V2, SYSTEM_INSTRUCTION_V2, _ensemble_candidates, build_model_input
 from serving.verification import verify_adapter_manifest, verify_base_snapshot
 
 MAX_REQUEST_BYTES = 64_000
@@ -132,10 +132,9 @@ class Runtime:
             raise ValueError("Output exceeds response limit")
         try:
             raw = json.loads(output_text)
-            _validate_raw(raw, data["originalText"], conditions)
+            return _ensemble_candidates(raw, data["originalText"], conditions, raw_bookings=True)
         except Exception as exc:
             raise ValueError("Model output does not match the raw v2 contract") from exc
-        return raw
 
 
 RUNTIME = Runtime()

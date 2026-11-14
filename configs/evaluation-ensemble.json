@@ -21,7 +21,7 @@
   "enable_qwen_service": true,
   "qwen_service_url": "http://127.0.0.1:18117/v1/interpret",
   "output_dir": "reports/runs/evaluation",
-  "external_call_budget": 52,
+  "external_call_budget": 78,
   "min_external_interval_seconds": 5.0,
-  "run_purpose": "paced_sealed_evaluation_after_unpaced_availability_diagnostic"
+  "run_purpose": "field_fusion_regression_on_previous_synthetic_test"
 }

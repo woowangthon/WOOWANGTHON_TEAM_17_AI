@@ -15,6 +15,7 @@ from .atomic_preferences import build_atomic_preferences
 from .gemini import (load_gemini_settings, MAX_PERSONAL_REQUEST_BYTES,
                      MAX_RESPONSE_BYTES)
 from .personal_schedule import SCHEDULE_ITEM_SCHEMA, validate_extracted_schedule
+from .preference_fusion import DAILY, EMPTY_QUANTITY, REVIEW_PROMPT, REVIEW_SCHEMA, fuse
 
 MODEL_OUTPUT_SCHEMA_V2: dict[str, Any] = {
     "type": "object",
@@ -118,11 +119,11 @@ def _validate_raw(raw: Any, original_text: str, conditions: dict[str, Any]) -> d
             "unresolved": canonical["unresolved"], "scheduleItems": schedule}
 
 
-def call_gemini_v2(payload: dict[str, Any], timeout_seconds: float) -> dict[str, Any]:
+def _gemini_json(payload: dict, timeout_seconds: float, instruction: str, schema: dict) -> dict:
     settings = load_gemini_settings()
-    body = json.dumps({"systemInstruction": {"parts": [{"text": SYSTEM_INSTRUCTION_V2}]},
+    body = json.dumps({"systemInstruction": {"parts": [{"text": instruction}]},
                        "contents": [{"role": "user", "parts": [{"text": json.dumps(payload, ensure_ascii=False, separators=(",", ":"))}]}],
-                       "generationConfig": {"responseMimeType": "application/json", "responseJsonSchema": gemini_generation_schema(), "maxOutputTokens": 8192}},
+                       "generationConfig": {"responseMimeType": "application/json", "responseJsonSchema": gemini_generation_schema(schema), "maxOutputTokens": 8192}},
                       ensure_ascii=False, separators=(",", ":")).encode()
     if len(body) > MAX_PERSONAL_REQUEST_BYTES:
         raise ProviderError("Provider input exceeded the allowed size")
@@ -144,6 +145,73 @@ def call_gemini_v2(payload: dict[str, Any], timeout_seconds: float) -> dict[str,
     finally: conn.close()
 
 
+def call_gemini_v2(payload: dict[str, Any], timeout_seconds: float) -> dict[str, Any]:
+    return _gemini_json(payload, timeout_seconds, SYSTEM_INSTRUCTION_V2, MODEL_OUTPUT_SCHEMA_V2)
+
+
+def call_gemini_review(payload: dict, timeout_seconds: float) -> dict:
+    return _gemini_json(payload, timeout_seconds, REVIEW_PROMPT, REVIEW_SCHEMA)
+
+
+def _without_invalid_quantity(item: dict, source: str, context: dict) -> list[dict]:
+    """A failed count need not erase an otherwise valid soft food/activity preference."""
+    if (item.get("dimension") in ("visit_count", "walking") or item.get("polarity") == "limit"
+            or item.get("priority") == "required" or not any(item.get(k) != v for k, v in EMPTY_QUANTITY.items())):
+        return []
+    base = {**item, **EMPTY_QUANTITY}
+    if base.get("scope") == "day" and not DAILY.search(item["evidence"]):
+        base["scope"] = "unspecified"
+    try:
+        return _validate_raw({"conditions": [base], "unresolved": [], "scheduleItems": []}, source, context)["conditions"]
+    except (TypeError, ValueError, ProviderError):
+        return []
+
+
+def _ensemble_candidates(raw: Any, source: str, context: dict, *, raw_bookings: bool = False) -> dict:
+    """Validate each extraction independently. Keep booking evidence until fusion."""
+    limits = {"conditions": 80, "unresolved": 80, "scheduleItems": 20}
+    if (not isinstance(raw, dict) or set(raw) != set(limits)
+            or any(not isinstance(raw[k], list) or len(raw[k]) > n for k, n in limits.items())):
+        raise ProviderError("Provider returned invalid atomic output")
+    # An unnamed generic count is representable when the unit and number come from the source.
+    result = {key: [] for key in limits}
+    rejected = False
+    grounded_notes = []
+    for key in limits:
+        for item in raw[key]:
+            evidence = item.get("evidence") if isinstance(item, dict) else None
+            if (key == "conditions" and isinstance(item, dict) and item.get("dimension") == "visit_count"
+                    and item.get("target") == "" and isinstance(evidence, str)
+                    and re.search(r"(?:\d|한|두|세|네)\s*(?:곳|군데)", evidence)):
+                item = {**item, "target": "방문 장소"}
+            try:
+                isolated = {"conditions": [], "unresolved": [], "scheduleItems": [], key: [item]}
+                valid = _validate_raw(isolated, source, context)[key]
+            except (ValueError, TypeError, ProviderError):
+                rejected = True
+                if isinstance(evidence, str) and evidence.strip() and len(evidence) <= 1000 and evidence in source:
+                    note = {"code": "invalid_candidate", "evidence": evidence, "message": "이 구절의 일부 해석을 검증할 수 없었어요."}
+                    if key == "conditions":
+                        recovered = _without_invalid_quantity(item, source, context)
+                        if recovered:
+                            result[key].extend(recovered)
+                            note.update(code="ambiguous_quantity", message=f"‘{item['target'][:65]}’의 횟수·수량을 원문에서 확정하기 어려워요.")
+                    try:
+                        build_atomic_preferences([], [note], source)
+                    except ValueError:
+                        continue
+                    if note not in grounded_notes:
+                        grounded_notes.append(note)
+                continue
+            if key == "scheduleItems":
+                valid = [item] if raw_bookings and valid else [{**booking, "evidence": evidence.strip()} for booking in valid]
+            result[key].extend(valid)
+    if rejected and not any(result.values()):
+        raise ProviderError("Provider returned no usable items")
+    result["unresolved"].extend(grounded_notes)
+    return result
+
+
 def call_qwen_v2(payload: dict[str, Any], timeout_seconds: float) -> dict[str, Any]:
     """Call the configured private Qwen HTTP service using only stdlib urllib."""
     from urllib.request import Request, urlopen
@@ -163,63 +231,6 @@ def call_qwen_v2(payload: dict[str, Any], timeout_seconds: float) -> dict[str, A
     except Exception as exc: raise ProviderError("Qwen provider request failed") from exc
 
 
-def _semantic_key(atom: dict[str, Any]) -> tuple[str, str]:
-    return atom["dimension"], re.sub(r"\s+", "", atom["target"]).casefold()
-
-
-def _meaning(atom: dict[str, Any]) -> str:
-    fields = {k: v for k, v in atom.items() if k not in {"evidence", "priorityBasis"}}
-    frequency = fields.get("frequency")
-    # A redundant numeric value must not turn 'once per trip' into disagreement
-    # with the identical fact expressed only through frequency.
-    if frequency and fields.get("value") == frequency.get("count") and fields.get("unit") in {"번", "회", "곳", "군데", "개", "끼"}:
-        fields["value"] = fields["unit"] = None
-    return json.dumps(fields, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-
-
-def _reconcile(outputs: dict[str, dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
-    """Only matching claims from two healthy providers become actionable atoms.
-
-    A missing or conflicting claim remains source-linked in unresolved. A single
-    configured/surviving provider is usable but is explicitly marked degraded by
-    the caller when applicable. Agreement is not a calibrated confidence score.
-    """
-    unresolved = []
-    for out in outputs.values():
-        for item in out["unresolved"]:
-            if item not in unresolved:
-                unresolved.append(item)
-    if len(outputs) == 1:
-        out = next(iter(outputs.values()))
-        return out["conditions"], unresolved, out["scheduleItems"]
-    left, right = list(outputs.values())
-    groups: dict[tuple[str, str], tuple[list[dict[str, Any]], list[dict[str, Any]]]] = {}
-    for side, out in enumerate((left, right)):
-        for atom in out["conditions"]:
-            groups.setdefault(_semantic_key(atom), ([], []))[side].append(atom)
-    agreed = []
-    for a, b in groups.values():
-        left_meanings, right_meanings = {_meaning(x) for x in a}, {_meaning(x) for x in b}
-        if left_meanings == right_meanings:
-            for atom in a:
-                if not any(_meaning(atom) == _meaning(existing) for existing in agreed):
-                    agreed.append(atom)
-        else:
-            evidence = (a or b)[0]["evidence"]
-            target = (a or b)[0]["target"]
-            unresolved.append({"code": "provider_disagreement", "evidence": evidence,
-                               "message": f"두 모델의 '{target}' 해석이 달라 자동 적용하지 않았어요. 원문이나 분석 조건을 수정할 수 있어요."[:240]})
-    # Schedule records contain no provider metadata; disagreement must not create
-    # additional bookings. Canonical validators already removed private evidence.
-    def schedule_key(item: dict[str, Any]) -> str:
-        return json.dumps({k: v for k, v in item.items() if k != "id"}, sort_keys=True, ensure_ascii=False)
-    right_schedules = {schedule_key(item) for item in right["scheduleItems"]}
-    schedule = [item for item in left["scheduleItems"] if schedule_key(item) in right_schedules]
-    agreed_schedules = {schedule_key(item) for item in schedule}
-    if any(schedule_key(item) not in agreed_schedules for out in (left, right) for item in out["scheduleItems"]):
-        unresolved.append({"code": "schedule_disagreement", "evidence": "",
-                           "message": "숙소·약속 해석이 달라 자동 적용하지 않았어요. 원문의 날짜·장소·예약 여부를 확인해 주세요."})
-    return agreed, unresolved[:80], schedule
 
 
 def _project_legacy(atoms: list[dict[str, Any]]) -> tuple[dict[str, Any], bool]:
@@ -252,7 +263,8 @@ def _project_legacy(atoms: list[dict[str, Any]]) -> tuple[dict[str, Any], bool]:
 
 def interpret_personal_draft_v2(original_text: str, conditions: dict[str, Any], *, provider: str | None = None,
                                 strict: bool | None = None, timeout_seconds: float = 60.0,
-                                providers: dict[str, Callable[[dict[str, Any], float], dict[str, Any]]] | None = None) -> dict[str, Any]:
+                                providers: dict[str, Callable[[dict[str, Any], float], dict[str, Any]]] | None = None,
+                                reviewer: Callable[[dict, float], dict] | None = None) -> dict[str, Any]:
     """Interpret using gemini, qwen, or independent ensemble; keeps v1 opt-in boundary."""
     if not isinstance(original_text, str) or not original_text.strip() or len(original_text) > 5000 or not isinstance(conditions, dict):
         raise EnsembleError("Original text and conditions are required")
@@ -260,6 +272,8 @@ def interpret_personal_draft_v2(original_text: str, conditions: dict[str, Any], 
     if mode not in {"gemini", "qwen", "ensemble"}: raise EnsembleError("Unknown preference provider")
     strict_mode = strict if strict is not None else os.environ.get("PREFERENCE_AI_STRICT", "false").lower() in {"1", "true", "yes"}
     callers = providers or {"gemini": call_gemini_v2, "qwen": call_qwen_v2}
+    if providers is None and reviewer is None:
+        reviewer = call_gemini_review
     payload = build_model_input(original_text.replace("\r\n", "\n").strip(), conditions)
     selected = [mode] if mode != "ensemble" else ["gemini", "qwen"]
     deadline = time.monotonic() + max(0.001, min(float(timeout_seconds), 120.0))
@@ -269,18 +283,37 @@ def interpret_personal_draft_v2(original_text: str, conditions: dict[str, Any], 
     completed, pending = wait(futures, timeout=max(0, deadline - time.monotonic()))
     for future in completed:
         name = futures[future]
-        try: outputs[name] = _validate_raw(future.result(), payload["originalText"], conditions)
+        validate = _ensemble_candidates if mode == "ensemble" else _validate_raw
+        try: outputs[name] = validate(future.result(), payload["originalText"], conditions)
         except Exception: failures.append(name)
     for future in pending:
         failures.append(futures[future]); future.cancel()
-    # HTTP calls have the same socket deadline. Do not extend the caller's total
-    # budget while waiting for an uncooperative injected provider.
     pool.shutdown(wait=False, cancel_futures=True)
     if not outputs: raise ProviderError("Preference providers are unavailable")
     if strict_mode and failures: raise ProviderError("Strict ensemble provider failure")
     # Deterministic provider order makes canonical IDs stable across races.
     outputs = {name: outputs[name] for name in selected if name in outputs}
-    atoms, unresolved, schedule_items = _reconcile(outputs)
+    def bounded_review(batch: dict) -> dict:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or not reviewer:
+            return {}
+        review_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="preference-review")
+        try:
+            future = review_pool.submit(reviewer, batch, remaining)
+            return future.result(timeout=max(0, deadline - time.monotonic()))
+        except Exception:
+            # Keep deterministic decisions, and leave unresolved fields open.
+            return {}
+        finally:
+            review_pool.shutdown(wait=False, cancel_futures=True)
+
+    if mode == "ensemble":
+        atoms, unresolved, schedule_items = fuse(outputs, payload["originalText"], conditions,
+                                                bounded_review if len(outputs) == 2 else None)
+    else:
+        only = next(iter(outputs.values()))
+        atoms, unresolved = only["conditions"], only["unresolved"]
+        schedule_items = [{k: v for k, v in item.items() if k != "evidence"} for item in only["scheduleItems"]]
     if failures:
         unresolved.append({"code": "provider_degraded", "evidence": "", "message": "One configured provider did not return a usable result."})
     atomic = build_atomic_preferences(atoms, unresolved[:80], payload["originalText"], conditions)

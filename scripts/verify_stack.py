@@ -2,7 +2,7 @@
 
 This exercises actual BE HTTP handlers and persistence, not production MySQL,
 production cookie authentication, or the browser. It makes one bounded ensemble
-request (one Gemini request and one local Qwen request).
+request (one Gemini extraction, one local Qwen extraction, up to one Gemini review).
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def verify(be_root: Path, output: Path, case: str = "food", clean_common_context: bool = False) -> dict:
     sys.path[:0] = [str(ROOT), str(be_root.resolve()), str(be_root.resolve() / "tests")]
     from test_preference_v2_sqlite import personal_v2
-    from chungbuk_trip_ai.ensemble import interpret_personal_draft_v2
+    from chungbuk_trip_ai.ensemble import call_gemini_review, interpret_personal_draft_v2
 
     fixture = personal_v2.__wrapped__()
     client, engine, trip_id, _ = next(fixture)
@@ -34,8 +34,16 @@ def verify(be_root: Path, output: Path, case: str = "food", clean_common_context
             conditions = validate_conditions(conditions)
             connection.execute(text("UPDATE trip_preparation_documents SET conditions_json=:json"),
                                {"json": json.dumps(conditions, ensure_ascii=False)})
+    reviews = []
+    def review(batch, timeout):
+        fields = [field for group in batch["groups"] for field in group["options"]]
+        log = {"fields": fields, "responseReceived": False}
+        reviews.append(log)
+        result = call_gemini_review(batch, timeout)
+        log["responseReceived"] = True
+        return result
     client.app.state.preparation_interpreter_v2 = lambda source, conditions: interpret_personal_draft_v2(
-        source, conditions, provider="ensemble", strict=True, timeout_seconds=60)
+        source, conditions, provider="ensemble", strict=True, timeout_seconds=100, reviewer=review)
     base = f"/api/v1/trips/{trip_id}/preferences/me"
     headers = {"X-Preference-Schema": "2"}
     steps = []
@@ -53,6 +61,7 @@ def verify(be_root: Path, output: Path, case: str = "food", clean_common_context
         initial = request("GET", base)
         # Previously used development smoke source, outside the sealed final test.
         sources = {"food": "여행 중 초밥을 한 번 먹고 싶어요.",
+                   "fusion": "산 가고 싶어, 밥은 초밥을 한 번은 먹고 싶어, 하루에 3곳 정도만 가고 싶어. 식당은 아침 점심 저녁 3번.",
                    "combined": "산에 가고 싶어. 초밥은 한 번 먹고 싶어. 하루에 3곳 정도만 가고 싶어."}
         draft = initial["draft"] | {"originalText": sources[case]}
         saved = request("PUT", base, json={"expectedConditionsVersion": initial["conditionsVersion"],
@@ -69,12 +78,22 @@ def verify(be_root: Path, output: Path, case: str = "food", clean_common_context
         if restored["draft"] != saved["draft"] or confirmed["confirmation"]["status"] != "confirmed":
             raise RuntimeError("Live stack check did not preserve the saved profile and confirmation")
         profile = restored["draft"]["atomicPreferences"]
+        if case == "fusion":
+            def reflects(dimension, count, period, operator):
+                return any(c["dimension"] == dimension and c["frequency"] == {"count": count, "period": period, "operator": operator}
+                           for c in profile["conditions"])
+            if (not any("산" in c["target"] for c in profile["conditions"] if c["dimension"] == "activity")
+                    or not reflects("food", 1, "trip", "min") or not reflects("visit_count", 3, "day", "target")
+                    or not any(c["dimension"] == "meal_plan" and c["frequency"] and c["frequency"]["count"] == 3
+                               and c["frequency"]["period"] == "day" for c in profile["conditions"])):
+                raise RuntimeError("Four-clause development case lost an expected field")
         report = {"createdAt": datetime.now(timezone.utc).isoformat(), "status": "passed",
             "developmentCase": case,
             "commonTextDefaultsCleared": clean_common_context,
             "fixture": "synthetic-source/SQLite/test-auth", "productionMySql": False,
             "productionAuth": False, "browserTest": False, "liveModels": True,
-            "externalRequestBudget": 2, "analysisMeta": interpreted["analysisMeta"], "steps": steps,
+            "providerRequestBudget": 3, "fieldReviews": reviews, "analysisMeta": interpreted["analysisMeta"], "steps": steps,
+            "exampleProfile": profile,
             "atomicConditions": len(profile["conditions"]), "unresolved": len(profile["unresolved"]),
             "origins": dict(Counter(atom["origin"] for atom in profile["conditions"])),
             "confirmation": confirmed["confirmation"]["status"], "restoredExactly": True}
@@ -101,7 +120,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--be-root", type=Path, required=True)
     parser.add_argument("--live-models", action="store_true", help="Authorize this one bounded live ensemble request")
-    parser.add_argument("--case", choices=["food", "combined"], default="food")
+    parser.add_argument("--case", choices=["food", "combined", "fusion"], default="food")
     parser.add_argument("--clean-common-context", action="store_true",
                         help="Clear fixture-only lodging/fixedSchedule defaults for a focused personal-input smoke")
     parser.add_argument("--output", type=Path, default=ROOT / "reports/live/stack-acceptance.json")
