@@ -9,7 +9,7 @@
 5. ZIP을 AI 저장소 `artifacts/submission/unpacked/` 같은 별도 디렉터리에 푼다. 기존 학습 adapter를 덮어쓰지 않고, AI `.env`의 `QWEN_ADAPTER_PATH=artifacts/submission/unpacked/adapter`로 해당 adapter를 지정한다.
 6. `python -m serving.server`로 실행하고 `http://127.0.0.1:18117/ready`의 ready/adapterLoaded를 확인한다. BE 환경에는 v2 AI 패키지, 개인 Gemini key, `PREFERENCE_AI_PROVIDER=ensemble`, `QWEN_PREFERENCE_URL=http://127.0.0.1:18117/v1/interpret`가 필요하다.
 
-학습을 다시 실행할 필요 없이 adapter를 서빙할 수 있다. 다시 학습하려면 같은 데이터·설정·seed를 사용하되 새 output 디렉터리로 분리한다. 다른 OS·드라이버·커널에서 bitwise 동일한 결과는 보장하지 않는다. Docker 구성은 코드에 있지만 이번 장비의 WSL 장애로 이미지 빌드/GPU 실행을 검증하지 못했다.
+학습을 다시 실행할 필요 없이 adapter를 서빙할 수 있다. 다시 학습하려면 같은 데이터·설정·seed를 사용하되 새 output 디렉터리로 분리한다. 다른 OS·드라이버·커널에서 bitwise 동일한 결과는 보장하지 않는다. WSL 복구 후 Docker 이미지 빌드·GPU 추론을 확인했으며 [Linux lock](reproduction/requirements-lock.linux.txt)과 [검증 기록](evidence/DOCKER_VERIFICATION.md)을 제공한다. 컨테이너 전체 학습을 재실행한 것은 아니다.
 
 ## 근거 파일
 

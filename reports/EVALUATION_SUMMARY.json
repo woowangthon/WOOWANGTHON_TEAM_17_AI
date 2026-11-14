@@ -236,7 +236,7 @@
     "Ensemble had 23 fully paired successes, 2 degraded successes and 1 total failure; its aggregate includes fallback.",
     "Gemini v1 DTO cannot be scored with v2 atomic F1.",
     "Initial unpaced requests suffered availability errors and are excluded from final quality comparison.",
-    "No production MySQL/auth/live-model browser acceptance or Docker GPU-container execution.",
+    "The original Windows quality evaluation did not include production MySQL/auth/live-model browser acceptance or Docker execution; subsequent Docker serving validation is recorded separately.",
     "New atomic/day/count conditions are not yet enforced by the friend-owned route optimizer."
   ],
   "liveStack": {
@@ -338,5 +338,12 @@
         }
       ]
     }
+  },
+  "followUpValidation": {
+    "dockerGpuServingVerified": true,
+    "dockerFullTrainingRerun": false,
+    "report": "reports/DOCKER_VERIFICATION.md",
+    "inferenceRecord": "reports/live/docker-inference-smoke.json",
+    "doesNotReplaceWindowsQualityEvaluation": true
   }
 }

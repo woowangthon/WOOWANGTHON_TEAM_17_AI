@@ -58,4 +58,4 @@ test에는 gold unresolved 사례가 **0개**여서 이 수치로 모호한 문�
 
 최신 원자 조건의 정확한 방문 횟수·날짜별 제약을 장소 선택·TOPTW·2-opt/relocate가 모두 반영하는 부분은 일정 담당자의 후속 연동이다. 이번 내부 인수 자료 생성만으로 경로 제약 준수를 주장하지 않는다.
 
-Docker 설정과 고정 CUDA 이미지 digest는 준비했지만 WSL 목록 조회 시간 초과·Docker engine pipe 부재로 빌드/실행을 검증하지 못했다. 실제 학습·서빙 검수는 Windows CUDA에서 수행했다. Docker 데이터 초기화·배포·공용 DB 변경은 하지 않았다. 운영 배포·사람 평가·공개 adapter 업로드도 완료 상태가 아니다.
+초기 실행에서는 WSL 목록 조회 시간 초과·Docker engine pipe 부재로 빌드/실행을 검증하지 못했다. 이후 Docker/WSL 복구 후 기존 adapter의 Linux GPU 서빙·cold-JIT·실제 HTTP 추론을 확인했다. [추가 Docker 검증](DOCKER_VERIFICATION.md)에 초기 누락 의존성과 수정·재검수 결과를 기록했다. 학습과 위 품질 평가는 계속 Windows CUDA 실험을 뜻하며 컨테이너 전체 학습을 재실행한 것은 아니다. Docker 데이터 초기화·공용 DB 변경은 하지 않았다. 운영 배포·사람 평가·공개 adapter 업로드도 완료 상태가 아니다.

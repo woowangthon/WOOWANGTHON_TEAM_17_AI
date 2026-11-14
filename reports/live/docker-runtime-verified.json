@@ -1,0 +1,22 @@
+{
+  "python": "3.12.3",
+  "platform": "linux",
+  "compiler": "/usr/bin/gcc",
+  "pythonHeader": true,
+  "freshTritonCache": true,
+  "torch": "2.9.1+cu128",
+  "triton": "3.5.1",
+  "transformers": "5.23.0",
+  "peft": "0.21.3",
+  "flash-linear-attention": "0.5.2",
+  "pipCheck": {
+    "exitCode": 0,
+    "output": "No broken requirements found."
+  },
+  "cudaAvailable": true,
+  "gpu": "NVIDIA GeForce RTX 4080 SUPER",
+  "libcudaLoaded": true,
+  "coldTritonKernelPassed": true,
+  "coldJitSeconds": 0.696,
+  "status": "passed"
+}

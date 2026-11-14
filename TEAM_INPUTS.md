@@ -17,9 +17,9 @@
 
 팀원이 실제 서비스에서 입력·분석·수정·저장·확정을 수행한 날짜와 발견한 문제를 `reports/HUMAN_ACCEPTANCE.md`에 적는다. 자동 검사·합성 여행방 브라우저 검수와 구분한다.
 
-## Docker/WSL 복구 후 확인
+## Docker/WSL 후속 상태
 
-이번 실행에서 Docker Desktop은 `Unexpected WSL error`와 WSL 명령 시간 초과가 발생했다. Docker 데이터를 초기화하거나 배포 DB를 변경하지 않았다. Windows/WSL이 정상화되면 `docker info`를 확인한 뒤 문서의 GPU 컨테이너 검수를 실행한다. 현재 Docker 이미지 빌드·GPU 컨테이너 실행·전용 MySQL 검수는 통과로 기록하지 않는다.
+초기 Docker Desktop의 `Unexpected WSL error`와 WSL 명령 시간 초과 이후 Windows/WSL이 정상화됐다. 후속으로 이미지 빌드·GPU cold-JIT·기존 adapter의 실제 HTTP 추론을 확인했다. Docker 데이터를 초기화하거나 배포 DB를 변경하지 않았다. 컨테이너 전체 학습과 전용 MySQL 검수는 아직 실행하지 않았다. 근거는 [Docker 검증](reports/DOCKER_VERIFICATION.md)에 있다.
 
 ## 제출자가 최종 기록할 값
 

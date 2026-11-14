@@ -20,6 +20,7 @@ BE는 기존 개인 취향 API의 `X-Preference-Schema: 2`로 사용합니다. �
 - 사람이 나중에 채울 원문·정답: [TEAM_INPUTS.md](TEAM_INPUTS.md)
 - 브라우저 검수 범위: [화면 검수 기록](reports/ui/README.md)
 - 실제 학습·비교·실패: [실행 결과](reports/RESULTS.md)
+- Docker GPU 서빙 확인: [컨테이너 검증](reports/DOCKER_VERIFICATION.md)
 - 추후 PPT에 사용할 근거: [발표 메모](reports/PRESENTATION_NOTES.md)
 
 단체 취향의 필수 조건·개인별 제한·동등한 1인 기여·충돌 후보는 BE의 비공개 `groupConditions` 인수 자료에 보존합니다. 새 원자 조건의 장소 선택·날짜 배분·경로 최적화 적용은 일정 알고리즘 담당자의 후속 연동 범위입니다. 이 변경은 TOPTW·2-opt·relocate를 구현하거나 그 제약 준수를 보장하지 않습니다.

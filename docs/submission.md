@@ -8,7 +8,7 @@
 - 기반 파일은 `artifacts/models/` 아래에서만 사용합니다. ZIP에는 모델 가중치가 들어가지 않습니다.
 - full training adapter와 학습 로그가 아직 생성되지 않았으면 패키징 dry-run은 누락 상태를 출력하고 종료 코드 2를 반환합니다. Smoke-only adapter는 제출 자료로 거부됩니다.
 - `TEAM_INPUTS.md`의 사람 검수 gold set, 실제 조건 표본, 검토 정책, 모델 라이선스 승인과 팀 심사 자료는 아직 팀 제공 대기 항목입니다. synthetic 평가를 사람 평가로 부르지 않습니다.
-- 실제 Windows CUDA 학습 120단계와 고정 test 비교를 완료했습니다. 결과·제한은 [실행 결과](../reports/RESULTS.md)에 있습니다. Docker Desktop/WSL 빌드·실행은 검증하지 않았습니다.
+- 실제 Windows CUDA 학습 120단계와 고정 test 비교를 완료했습니다. 이후 Docker/WSL 복구 후 Linux GPU 서빙도 검증했습니다. [실행 결과](../reports/RESULTS.md)와 [Docker 검증](../reports/DOCKER_VERIFICATION.md)을 구분합니다. 컨테이너 전체 학습을 다시 실행한 것은 아닙니다.
 
 ## 기반 모델 다운로드
 

@@ -41,4 +41,4 @@
 - 실패 흐름: 공통 숙소 희망을 예약처럼 추출했을 때의 거절, 두 모델 해석 차이, stale 영수증.
 - 제출: 코드 main SHA·adapter 다운로드·checksum·재현 명령이 필요하다. IP/컨테이너 ID만으로 모델을 제출하지 않는다.
 
-Docker/GPU 컨테이너와 운영 MySQL·배포 URL·사람 인수는 미검증으로 표시한다. 공개 업로드와 PR 병합은 별도 절차다.
+Docker GPU 추론은 후속 검수에서 확인했다. DOCKER_VERIFICATION.md의 이미지·Linux lock·cold-JIT·HTTP 근거를 사용하고, 컨테이너 전체 학습이나 Linux 품질 재평가로 표현하지 않는다. 운영 MySQL·배포 URL·사람 인수는 미검증이다. 공개 업로드와 PR 병합은 별도 절차다.
