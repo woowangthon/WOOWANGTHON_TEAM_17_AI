@@ -51,4 +51,8 @@ Legacy suggestion projection retains the fields and schedule item shape expected
 
 ## Group helper
 
+The downstream BE route adapter uses confirmed atomic fields directly. It retains `required` versus soft preferences and day versus trip frequency through candidate scoring and final route validation. Current atomic members bypass their lossy legacy suggestion projection during this internal generation path.
+
+The existing candidate scheduler accepts optional `scheduleContext.preferenceRules`, a list of `{contentids,period,operator,count,required}` bounded by the existing request-byte limit. The BE deduplicates identical prompt rules across members. IDs must belong to the provided candidate pool, periods are `day|trip`, operators are `exact|min|max|target`, and counts are integers from 0 to 365. `target` is soft. This context contains no member references, private evidence, model outputs or original request. The normal drafter forwards these rules to Gemini and retains its existing unverified-proposal response. BE independently rechecks the scheduled plan and every optimization evaluation. Empty or omitted rules retain the existing scheduling contract.
+
 `build_group_condition_summary` accepts only member IDs in `confirmed_member_ids`. It preserves hard/soft priority and counts a member at most once per grouped condition. It is a summary only; it does not select places, dates, routes, or optimize an itinerary.
