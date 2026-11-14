@@ -1,0 +1,35 @@
+{
+  "seed": 20261114,
+  "splits": {
+    "train": 0.8,
+    "dev": 0.1,
+    "test": 0.1
+  },
+  "dataset": "data/generated/preference-v2-review.jsonl",
+  "sha256": "315a85b7e24efe3077ac96ba60a07944d8b2096c0d0310b68e00081f681ee7cd",
+  "contractSchemaHash": "d720ad86f262ab4f4ee5ae1ee34d60f53befeccd9ac1a4ad27875d338c9cb514",
+  "systemPromptSha256": "893527aa48b3fd2ee2bebab65040ee39125b9694388cd2645b0b8e01d84f8116",
+  "summary": {
+    "records": 217,
+    "families": 103,
+    "sourceRecords": 217,
+    "bySplit": {
+      "train": 180,
+      "dev": 11,
+      "test": 26
+    },
+    "bySplitFamilies": {
+      "train": 83,
+      "dev": 11,
+      "test": 9
+    },
+    "byProvenance": {
+      "synthetic_rule_verified": 205,
+      "synthetic_ai_reviewed": 12,
+      "human_adjudicated": 0
+    }
+  },
+  "parentDataset": "data/generated/preference-v2.jsonl",
+  "additionalTrainRecords": 12,
+  "splitPolicy": "Original partitions retained; six new synthetic families assigned to train only."
+}

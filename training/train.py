@@ -153,7 +153,7 @@ def train(config_path: Path) -> dict[str, Any]:
         raise ValueError("Training, dev and held-out test splits must all be non-empty")
 
     import torch
-    from peft import LoraConfig, get_peft_model
+    from peft import LoraConfig, PeftModel, get_peft_model
     from transformers import AutoTokenizer, Qwen3_5ForCausalLM
 
     seed = int(config["seed"])
@@ -180,10 +180,20 @@ def train(config_path: Path) -> dict[str, Any]:
     # Keep portable adapter metadata independent of the local download path.
     model.name_or_path = config["base_model_id"]
     model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
-    lora = LoraConfig(r=int(config["lora_r"]), lora_alpha=int(config["lora_alpha"]),
-                      lora_dropout=float(config["lora_dropout"]), bias="none", task_type="CAUSAL_LM",
-                      target_modules=config.get("target_modules", "all-linear"))
-    model = get_peft_model(model, lora)
+    parent_adapter = None
+    if config.get("initial_adapter"):
+        parent = (ROOT / config["initial_adapter"]).resolve()
+        if out_dir.is_relative_to(parent) or parent.is_relative_to(out_dir):
+            raise ValueError("Use a new output directory separate from the initial adapter")
+        parent_adapter = verify_adapter_manifest(parent, config["base_model_id"], config["base_revision"])
+        if parent_adapter["manifestSha256"] != config["initial_adapter_manifest_sha256"]:
+            raise ValueError("Initial adapter does not match the configured manifest")
+        model = PeftModel.from_pretrained(model, parent, is_trainable=True, local_files_only=True)
+    else:
+        lora = LoraConfig(r=int(config["lora_r"]), lora_alpha=int(config["lora_alpha"]),
+                          lora_dropout=float(config["lora_dropout"]), bias="none", task_type="CAUSAL_LM",
+                          target_modules=config.get("target_modules", "all-linear"))
+        model = get_peft_model(model, lora)
     device = torch.device("cuda:0")
     if placement == "cpu_shared_embedding_head":
         placement_info = place_cpu_shared_embedding_head(model, torch, device)
@@ -215,7 +225,7 @@ def train(config_path: Path) -> dict[str, Any]:
               "systemPromptSha256": digest_json(SYSTEM_INSTRUCTION_V2),
               "placement": placement_info,
               "placementPrecisionNote": "CPU shared embedding/head use float32; moved decoder and LoRA preserve loaded dtypes" if placement == "cpu_shared_embedding_head" else None,
-              "baseManifest": base_manifest,
+              "baseManifest": base_manifest, "initialAdapter": parent_adapter,
               "versions": {"python": os.sys.version, "torch": torch.__version__, "transformers": _version("transformers"),
                            "peft": _version("peft"), "cuda": torch.version.cuda, "device": torch.cuda.get_device_name(0)},
               "dataCounts": {"train": len(train_rows), "dev": len(dev_rows), "heldoutTest": sum(r["split"] == "test" for r in rows)}}
@@ -345,7 +355,8 @@ def train(config_path: Path) -> dict[str, Any]:
                         "repositoryRevision": record["repositoryRevision"], "workingTreeDirty": dirty,
                         "seed": seed, "bestStep": best_step, "bestDevLoss": best_dev,
                         "selectedDevLoss": selected_dev_loss, "peakAllocatedBytes": peak_memory,
-                        "versions": record["versions"], "labelProvenance": "synthetic_rule_verified"}
+                        "versions": record["versions"], "initialAdapter": parent_adapter,
+                        "labelProvenance": sorted({row["provenance"] for row in train_rows}) if parent_adapter else "synthetic_rule_verified"}
     artifact_manifest_bytes = (json.dumps(artifact_manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     (adapter_dir / "adapter-manifest.json").write_bytes(artifact_manifest_bytes)
     (out_dir / "adapter-manifest.json").write_bytes(artifact_manifest_bytes)

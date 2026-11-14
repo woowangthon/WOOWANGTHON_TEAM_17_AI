@@ -4,7 +4,7 @@
 
 ## Gemini + Qwen 취향 분석 v2
 
-`interpret_personal_draft_v2`는 같은 원문을 Gemini와 로컬 Qwen에 독립적으로 전달하고, 조건의 부정·강도·횟수·하루/여행 전체 범위·원문 근거를 보존합니다. 정상 응답 두 개의 의미가 일치한 조건만 자동 적용하고 해석 차이는 `unresolved`로 남깁니다. 모델 간 일치는 정확도 확률이나 사람 검수가 아닙니다. 기존 v1 함수는 유지합니다.
+`interpret_personal_draft_v2`는 사용자의 여행 요청과 여행방 기본조건을 Gemini API와 로컬 Qwen에 각각 전달합니다. 같은 장소라도 날짜와 대상이 다르면 별개 조건으로 다룹니다. 각 조건의 선호·회피, 필수 여부, 횟수, 적용 기간을 원문의 해당 구절과 대조해 합칩니다. 한 모델만 찾아낸 조건도 원문에서 뒷받침되면 반영합니다. 남은 충돌은 Gemini에 한 차례 재검토를 요청할 수 있고, 끝까지 판단하기 어려운 항목은 `unresolved`로 돌려줍니다.
 
 ```python
 from chungbuk_trip_ai import interpret_personal_draft_v2
@@ -25,7 +25,22 @@ BE는 기존 개인 취향 API의 `X-Preference-Schema: 2`로 사용합니다. �
 
 단체 취향의 필수 조건·개인별 제한·동등한 1인 기여·충돌 후보는 BE의 비공개 `groupConditions` 인수 자료에 보존합니다. 새 원자 조건의 장소 선택·날짜 배분·경로 최적화 적용은 일정 알고리즘 담당자의 후속 연동 범위입니다. 이 변경은 TOPTW·2-opt·relocate를 구현하거나 그 제약 준수를 보장하지 않습니다.
 
-공식 Qwen3.5-4B 고정 revision과 별도 LoRA adapter를 사용합니다. 기반 가중치는 Git에 넣지 않습니다. IP나 Docker 내부 주소 대신 코드 커밋·모델 revision·adapter SHA-256·설정과 의존성으로 환경을 재현합니다. 실제 모델·학습·평가 기록과 Docker/WSL 미검증 항목은 제출 보고서에 구분해서 남깁니다.
+### 여행방 Qwen 추가 학습 · 2026-11-15
+
+여행방의 Qwen3.5-4B에서 사용하던 LoRA 가중치를 읽어 새 후보를 학습했습니다. 모델과 학습 코드가 같은 어댑터를 읽었는지는 매니페스트 SHA-256으로 확인합니다. 옵티마이저는 새로 시작합니다. 검증 오차가 가장 낮았던 30단계의 가중치를 선택했으며, 이 실행은 새 모델을 배포하지 않습니다.
+
+| 자료 | 내용 |
+| --- | --- |
+| [학습·검증·시험 데이터](data/generated/preference-v2-review.jsonl) · [분할 기록](data/generated/preference-v2-review.manifest.json) | 원래 205건에 합성 학습 예시 12건을 추가했습니다. 학습 180건, 검증 11건, 시험 26건입니다. |
+| [데이터 작성 양식](data/preference-form.csv) · [작성 방법](data/README.md) | 원문, 기대 해석, 실제 출력, 점수와 의견을 구분합니다. 엑셀에서 작성한 점수는 학습 정답으로 사용하지 않습니다. |
+| [추가 학습 설정](configs/train-review.json) · [평가 기록](reports/continued-20261115.md) | 부모 어댑터, 데이터, 새 가중치의 식별값과 고정 시험 결과를 확인할 수 있습니다. |
+
+기반 모델을 고정 revision으로 준비하고 기존 여행방 어댑터를 `artifacts/training/full/adapter-best`에 복원한 뒤 다음을 실행합니다. 새 후보는 `artifacts/training/continued-20261115/adapter-best`에 저장합니다. Gemini는 추론과 충돌 재검토에 API로 참여합니다.
+
+```sh
+python -m training.validate_dataset --path data/generated/preference-v2-review.jsonl
+python -m training.train --config configs/train-review.json
+```
 
 ## 설치
 
