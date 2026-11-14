@@ -270,3 +270,88 @@ def test_visit_count_unit_and_generic_name_align_but_keep_target_review():
     assert only["target"] == "\uacf3" and only["frequency"] == frequency(3, "target", "day")
     assert not profile["unresolved"]
     reviewer.assert_called_once()
+
+
+@pytest.mark.parametrize("source", [
+    "초밥은 한 번쯤 먹어도 좋지만 필수는 아니에요.",
+    "초밥을 먹고 싶지만 필수가 아니에요.",
+    "초밥은 먹고 싶고 필수 아님.",
+    "초밥은 먹고 싶지만 꼭 먹지 않아도 돼요.",
+])
+def test_negated_requirement_keeps_a_positive_optional_preference(source):
+    item = atom("초밥", source)
+    judge = Mock()
+    profile = run(source, raw([item]), raw([item]), judge)["atomicPreferences"]
+    only, = profile["conditions"]
+    assert (only["target"], only["polarity"], only["priority"]) == ("초밥", "prefer", "preferred")
+    assert only["evidence"] == source.rstrip(".")
+    assert not profile["unresolved"]
+    assert validate_atomic_preferences(profile, source, {}) == profile
+    judge.assert_not_called()
+
+
+def test_actual_optional_food_extractions_keep_frequency_and_trip_scope():
+    source = "호수는 보고 싶어요. 이번 여행에 초밥은 한 번쯤 먹어도 좋지만 필수는 아니에요. 걷기는 너무 길지 않으면 좋겠어요."
+    # Shapes observed in separate live Gemini and trained Qwen responses.
+    gemini = atom("초밥", "초밥은 한 번쯤 먹어도 좋지만", frequency=frequency(1, "max"), approximate=True)
+    qwen = atom("초밥", "이번 여행에 초밥은 한 번쯤 먹어도 좋지만 필수는 아니에요.",
+                frequency=frequency(1, "target"), approximate=True)
+    judge = Mock()
+    profile = run(source, raw([gemini]), raw([qwen]), judge)["atomicPreferences"]
+    only, = profile["conditions"]
+    assert (only["polarity"], only["priority"], only["scope"]) == ("prefer", "preferred", "trip")
+    assert only["frequency"] == frequency(1, "target") and only["approximate"]
+    assert only["evidence"] == "이번 여행에 초밥은 한 번쯤 먹어도 좋지만 필수는 아니에요"
+    assert not profile["unresolved"]
+    judge.assert_not_called()
+
+
+@pytest.mark.parametrize("source", [
+    "초밥은 먹고 싶지 않아요.",
+    "초밥은 필수는 아니지만 제외해 주세요.",
+    "초밥은 먹고 싶지만 꼭 먹지 않아도 되며 제외해 주세요.",
+])
+def test_actual_menu_negation_or_exclusion_is_not_a_positive_preference(source):
+    positive = atom("초밥", source)
+    negative = atom("초밥", source, polarity="avoid")
+    profile = run(source, raw([positive]), raw([negative]))["atomicPreferences"]
+    only, = profile["conditions"]
+    assert only["polarity"] == "avoid" and only["priority"] != "required"
+
+
+@pytest.mark.parametrize("source,target,polarity", [
+    ("땅콩 알레르기가 있어서 절대 먹으면 안 돼요.", "땅콩", "avoid"),
+    ("초밥은 반드시 먹고 싶어요.", "초밥", "prefer"),
+    ("초밥은 필수는 아니지만 알레르기가 있어서 절대 제외해 주세요.", "초밥", "avoid"),
+])
+def test_explicit_hard_reason_is_preserved_outside_negated_requirement(source, target, polarity):
+    required = atom(target, source, polarity=polarity, priority="required", priorityBasis="explicit")
+    soft = {**required, "priority": "preferred", "priorityBasis": "unspecified"}
+    profile = run(source, raw([required]), raw([soft]))["atomicPreferences"]
+    only, = profile["conditions"]
+    assert (only["polarity"], only["priority"], only["priorityBasis"]) == (polarity, "required", "explicit")
+
+
+def test_negated_requirement_does_not_support_a_model_required_claim():
+    source = "초밥은 먹고 싶지만 필수는 아니에요."
+    wrong = atom("초밥", source, priority="required", priorityBasis="explicit")
+    soft = atom("초밥", source)
+    profile = run(source, raw([wrong]), raw([soft]))["atomicPreferences"]
+    only, = profile["conditions"]
+    assert (only["polarity"], only["priority"]) == ("prefer", "preferred")
+
+
+@pytest.mark.parametrize("source", [
+    "초밥을 먹을까 고민 중이에요.",
+    "초밥은 필수는 아니지만 먹을지는 모르겠어요.",
+    "초밥을 먹고 싶은지 확실하지 않아요.",
+    "초밥은 필수는 아니에요.",
+    "초밥은 필수 아님.",
+    "초밥은 꼭 먹지 않아도 돼요.",
+    "초밥은 제외할 필요 없어요.",
+])
+def test_real_uncertainty_or_absence_of_positive_intent_stays_open(source):
+    item = atom("초밥", source)
+    profile = run(source, raw([item]), raw([item]))["atomicPreferences"]
+    assert not profile["conditions"]
+    assert any(note["code"] == "ambiguous_polarity" for note in profile["unresolved"])

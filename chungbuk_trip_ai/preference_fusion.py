@@ -15,8 +15,13 @@ BREAK = re.compile(
     r"|(?<=싶어)\s+|\s+(?:대신|하지만|그리고)\s+"
 )
 AVOID = re.compile(r"싫|제외|피하|피해|피했|피할|빼|제약|알레르기|못\s*(?:먹|가|걷)|안\s*(?:먹|가|갈|걷)|지\s*(?:않(?!은\s)|말)|금지")
-PREFER = re.compile(r"좋아|선호|좋겠|좋다|싶|원해|찾|희망|즐기|괜찮|지켜야|(?:가고|먹고|걷고|보고|방문하고)$")
+PREFER = re.compile(r"좋아|선호|좋겠|좋다|좋지만|싶|원해|찾|희망|즐기|괜찮|지켜야|(?:가고|먹고|걷고|보고|방문하고)$")
 UNCERTAIN = re.compile(r"모르|고민|갈까|될까|먹을까|확실하지|인지|미정|취소|필요\s*없|필수.{0,4}아니|꼭.{0,14}(?:않아도|없어도)|않아도\s*(?:돼|되)|[?？]")
+NEGATED_REQUIREMENT = re.compile(
+    r"필수(?:는|가)?\s*(?:아니|아님)"
+    r"|꼭\s*(?:먹지|가지|걷지|보지|하지|방문하지)?\s*않아도\s*(?:돼|되|괜찮)"
+    r"|꼭\s*없어도\s*(?:돼|되|괜찮)"
+)
 DAILY = re.compile(r"하루|매일|일당|일마다|each day|per day|daily", re.I)
 APPROX = re.compile(r"정도|쯤|가량|대략|약\s*\d|내외")
 COUNT = re.compile(r"(\d+|한|두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s*(번|회|곳|군데|끼|개|잔|인분|접시|그릇)")
@@ -121,7 +126,14 @@ def _fields(atom: dict) -> dict:
     return result
 
 
+def _without_negated_requirement(text: str) -> str:
+    # Optionality changes importance, not a separately stated like or exclusion.
+    # Keep the original passage/evidence, and leave all other uncertainty intact.
+    return NEGATED_REQUIREMENT.sub(" ", text)
+
+
 def _polarity(text: str) -> str | None:
+    text = _without_negated_requirement(text)
     if UNCERTAIN.search(text):
         return None
     if AVOID.search(text):
@@ -298,10 +310,11 @@ class Claim:
             direction = _polarity(p)
             if direction and direction in options:
                 return [direction]
-            if UNCERTAIN.search(p) or direction and "limit" not in options:
+            if UNCERTAIN.search(p) or NEGATED_REQUIREMENT.search(p) or direction and "limit" not in options:
                 return []
         if key == "importance":
-            hard_cue = _REQUIRED_CUE.search(p) and not UNCERTAIN.search(p)
+            importance_text = _without_negated_requirement(p)
+            hard_cue = _REQUIRED_CUE.search(importance_text) and not UNCERTAIN.search(importance_text)
             options = [v for v in options if v["priority"] != "required" or hard_cue]
             if len(options) > 1:
                 required = [v for v in options if v["priority"] == "required"]
@@ -444,9 +457,9 @@ def _judge(claims: list[Claim], source: str, review: Callable | None) -> None:
                 continue
             if key == "quantity" and _source_quantity(candidate, quote, claim.rows[0]["dimension"]) != candidate:
                 continue
-            if key == "polarity" and ((_polarity(quote) not in (None, candidate) and candidate != "limit") or UNCERTAIN.search(quote)):
+            if key == "polarity" and ((_polarity(quote) not in (None, candidate) and candidate != "limit") or UNCERTAIN.search(_without_negated_requirement(quote))):
                 continue
-            if key == "importance" and candidate["priority"] == "required" and not _REQUIRED_CUE.search(quote):
+            if key == "importance" and candidate["priority"] == "required" and not _REQUIRED_CUE.search(_without_negated_requirement(quote)):
                 continue
             if key == "audience" and candidate == "group" and not re.search(r"함께|다\s*같이|전원|우리|공통|단체|일행|모두", quote):
                 continue
