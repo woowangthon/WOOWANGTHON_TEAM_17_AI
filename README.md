@@ -247,6 +247,8 @@ python -m training.train --config configs/train.json
 
 ### 품질 평가·제출 자료
 
+2026-11-15에는 공유 Gemini 응답과 같은 Docker 단건 Qwen 추론으로 세 구성을 비교했습니다. 합성 시험 26건의 F1은 Gemini 단독 36.0%, 기존 Qwen 조합 52.0%, 추가 학습 후보 조합 48.0%였습니다. 두 앙상블의 차이는 중요도 라벨 한 건에서 발생했습니다. [동일 조건 비교 보고서](reports/paired-20261115.md)와 [사례·응답 원자료](reports/paired-20261115-test.json)에 데이터 분할·실패·실행 조건을 기록했습니다.
+
 ```powershell
 python -m evaluation.run --config configs/evaluation.json
 python scripts/package_submission.py --dry-run

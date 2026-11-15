@@ -1,0 +1,20 @@
+{
+  "dataset": "data/generated/preference-v2-review.jsonl",
+  "split": "test",
+  "expected_examples": 26,
+  "base_model": "artifacts/models/qwen3.5-4b-base",
+  "base_model_id": "Qwen/Qwen3.5-4B",
+  "base_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "adapters": {
+    "existing": "artifacts/training/full/adapter-best",
+    "continued": "artifacts/training/continued-20261115/adapter-best"
+  },
+  "max_input_tokens": 4096,
+  "max_new_tokens": 2048,
+  "timeout_seconds": 60,
+  "seed": 20261115,
+  "min_external_interval_seconds": 5,
+  "external_call_budget": 100,
+  "transient_retries": 2,
+  "output_dir": "reports/runs/paired-20261115"
+}
