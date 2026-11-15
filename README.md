@@ -198,7 +198,18 @@ docker compose --profile serve up -d preference-qwen
 Invoke-RestMethod http://127.0.0.1:18117/ready
 ```
 
-`/health`는 프로세스 응답, **`/ready`의 `ready=true`는 모델 준비 완료**를 뜻합니다. `/ready`의 모델/adapter 식별값도 확인합니다. 추론 경로는 `POST /v1/interpret`입니다. 기본 Compose는 loopback에만 포트를 공개하고 검증된 가중치를 읽기 전용으로 마운트합니다. 기반 모델만 쓰는 디버그는 명시적인 `QWEN_ALLOW_BASE_MODEL=true`가 필요합니다.
+`/health`는 프로세스 응답, **`/ready`의 `ready=true`는 모델 준비 완료**를 뜻합니다. `/ready`의 모델/adapter 식별값도 확인합니다. 추론 경로는 `POST /v1/interpret`입니다. 기본 Compose는 loopback에만 포트를 공개하고 검증된 가중치를 읽기 전용으로 마운트합니다.
+
+**기반 모델 단독 실행은 개발 중 디버깅용입니다.** [기본 Compose](compose.yaml)는 학습한 adapter를 사용하므로, 단독 실행하려면 컨테이너 환경에 `QWEN_ALLOW_BASE_MODEL=true`와 **빈 `QWEN_ADAPTER_PATH`를 함께 지정**해야 합니다. adapter 경로가 남아 있으면 [모델 로딩 코드](serving/server.py)는 계속 해당 adapter를 검사·로드합니다. 기존 서빙과 포트가 겹치지 않게 중지한 뒤, 다음처럼 일회성 디버그 컨테이너를 실행합니다.
+
+```powershell
+docker compose --profile serve stop preference-qwen
+docker compose --profile serve run --rm --service-ports `
+  -e QWEN_ALLOW_BASE_MODEL=true `
+  -e "QWEN_ADAPTER_PATH=" preference-qwen
+```
+
+위 서버는 현재 터미널에서 실행되며 `Ctrl+C`로 종료합니다. `/ready`의 `mode=base-only`, `adapterLoaded=false`를 확인합니다. 종료 후 위의 기본 `up -d` 명령으로 adapter 서빙을 다시 시작할 수 있습니다.
 
 native 실행은 [GPU 의존성·재현 안내](docs/reproducibility.md)에 따라 `requirements-serving.txt`와 필요한 커널을 설치한 뒤 `python -m serving.server`를 실행합니다. [Docker 검증 기록](reports/DOCKER_VERIFICATION.md)은 Linux GPU 서빙을 확인한 결과이며 컨테이너 전체 학습의 검증은 아닙니다.
 
