@@ -239,6 +239,30 @@ def fuse_pair(row: dict, qwen: dict[str, dict], gemini: dict | None,
     return results
 
 
+def score_gemini_baseline(row: dict, response: dict | None) -> dict:
+    """Score the shared initial response through the standalone Gemini path."""
+    from chungbuk_trip_ai.ensemble import interpret_personal_draft_v2
+    def provider(_payload: dict, _timeout: float) -> dict:
+        if response is None:
+            raise RuntimeError("Recorded Gemini response unavailable")
+        return copy.deepcopy(response)
+    try:
+        result = interpret_personal_draft_v2(
+            row["originalText"], row["conditions"], provider="gemini",
+            providers={"gemini": provider}, strict=False, timeout_seconds=60,
+        )
+        prediction, status, error = _raw_profile(result), "ok", None
+        metadata = result["analysisMeta"]
+    except Exception as exc:
+        prediction, status, error, metadata = None, "error", type(exc).__name__, {}
+    return {
+        "recordId": row["recordId"], "sourceFamily": row["sourceFamily"],
+        "variant": "gemini", "status": status, "errorType": error,
+        "rawPrediction": prediction, "analysisMeta": metadata,
+        **score_output(row["target"], prediction, status),
+    }
+
+
 def gemini_phase(config: dict, output: Path) -> None:
     from dotenv import load_dotenv
     load_dotenv(ROOT / ".env", override=False, interpolate=False)
@@ -267,7 +291,7 @@ def ensemble_phase(config: dict, output: Path) -> None:
     if set(qwen_rows) != expected:
         raise ValueError("Both adapters must complete every case before fusion")
     shared = SharedGemini(config, output / "gemini-cache.json", identity)
-    results = {name: [] for name in VARIANTS}
+    results = {name: [] for name in (*VARIANTS, "gemini")}
     intermediate = output / "ensemble-progress.json"
     for index, row in enumerate(rows):
         try:
@@ -298,6 +322,7 @@ def ensemble_phase(config: dict, output: Path) -> None:
         pair = fuse_pair(row, inputs, gemini, replay)
         for name in VARIANTS:
             results[name].append(pair[name])
+        results["gemini"].append(score_gemini_baseline(row, gemini))
         save_json(intermediate, {"identity": identity, "examples": results})
         print(json.dumps({"phase": "ensemble", "index": index + 1, "count": len(rows),
                           "geminiAvailable": gemini is not None, "reviewRequests": len(requested_reviews)}), flush=True)
@@ -307,22 +332,23 @@ def ensemble_phase(config: dict, output: Path) -> None:
         "geminiModel": shared.identity["geminiModel"], "externalAttempts": shared.cache["attempts"],
         "sharedInitialGeminiResponses": True, "identicalReviewPayloadCache": True,
         "reviewResponsesPrefetchedBeforeScoring": True,
+        "geminiBaselineUsesSharedInitialResponse": True,
         "productionFusion": True, "testExamples": len(rows),
         "metric": "micro precision/recall/F1 on strict complete condition tuples; failed cases included",
         "scope": "fixed synthetic held-out test; not human satisfaction or full route quality",
     }
-    for name in VARIANTS:
+    for name in results:
         write_results(results[name], output / f"ensemble-{name}.json", output / f"ensemble-{name}.csv", metadata)
     report = {
         "metadata": metadata,
-        "aggregate": {name: aggregate(results[name]) for name in VARIANTS},
+        "aggregate": {name: aggregate(items) for name, items in results.items()},
         "providerUsage": {name: {
             "both": sum(len(r["analysisMeta"].get("providersUsed", [])) == 2 for r in results[name]),
             "single": sum(len(r["analysisMeta"].get("providersUsed", [])) == 1 for r in results[name]),
             "none": sum(not r["analysisMeta"].get("providersUsed") for r in results[name]),
-        } for name in VARIANTS},
+        } for name in results},
         "examples": [{**{key: row[key] for key in ("recordId", "sourceFamily", "originalText", "conditions", "target")},
-                      "variants": {name: results[name][i] for name in VARIANTS}}
+                      "variants": {name: results[name][i] for name in results}}
                      for i, row in enumerate(rows)],
         "providerResponses": {"qwen": qwen, "gemini": shared.cache},
     }
@@ -343,7 +369,8 @@ def replay_phase(recorded_path: Path) -> dict:
     identity = experiment_identity(config, selected)
     if record["metadata"]["identity"] != identity:
         raise ValueError("Recorded experiment identity differs from current data or prompts")
-    replayed = {name: [] for name in VARIANTS}
+    names = (*VARIANTS, "gemini") if "gemini" in record["aggregate"] else VARIANTS
+    replayed = {name: [] for name in names}
     for source_row, row in zip(selected, record["examples"], strict=True):
         if any(row[key] != source_row[key] for key in ("originalText", "conditions", "target")):
             raise ValueError("Recorded input or answer differs from the held-out dataset")
@@ -360,9 +387,11 @@ def replay_phase(recorded_path: Path) -> dict:
             return copy.deepcopy(entry["response"])
         outputs = fuse_pair(row, {name: qwen_rows[row["recordId"], name] for name in VARIANTS},
                             initial.get("response"), review)
+        if "gemini" in names:
+            outputs["gemini"] = score_gemini_baseline(row, initial.get("response"))
         if missing_reviews:
             raise ValueError("Recorded review cache is incomplete")
-        for name in VARIANTS:
+        for name in names:
             expected = row["variants"][name]["rawPrediction"]
             actual = outputs[name]["rawPrediction"]
             def stable_profile(value: dict | None) -> dict | None:
@@ -377,7 +406,7 @@ def replay_phase(recorded_path: Path) -> dict:
     totals = {name: aggregate(rows) for name, rows in replayed.items()}
     if totals != record["aggregate"]:
         raise ValueError("Replayed aggregate differs from recorded scores")
-    return {"replayedOutputs": len(selected) * len(VARIANTS), "networkCalls": 0, "aggregate": totals}
+    return {"replayedOutputs": len(selected) * len(names), "networkCalls": 0, "aggregate": totals}
 
 
 def main() -> int:

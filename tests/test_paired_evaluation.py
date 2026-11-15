@@ -6,7 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from evaluation.paired import SharedGemini, fuse_pair, selected_records
+from evaluation.paired import SharedGemini, fuse_pair, score_gemini_baseline, selected_records
 
 
 def condition():
@@ -27,6 +27,27 @@ def request_row():
 
 
 class PairedEvaluationTests(unittest.TestCase):
+    def test_gemini_baseline_reuses_initial_response_without_qwen_or_network(self):
+        row = request_row()
+        response = copy.deepcopy(row["target"])
+        with patch("chungbuk_trip_ai.ensemble.call_gemini_v2",
+                   side_effect=AssertionError("Unexpected API call")), \
+             patch("chungbuk_trip_ai.ensemble.call_qwen_v2",
+                   side_effect=AssertionError("Unexpected Qwen call")):
+            result = score_gemini_baseline(row, response)
+        self.assertEqual(result["f1"], 1.0)
+        self.assertEqual(result["analysisMeta"]["providersUsed"], ["gemini"])
+        self.assertEqual(response, row["target"])
+
+    def test_gemini_baseline_validation_failure_counts_as_a_missed_condition(self):
+        row = request_row()
+        response = copy.deepcopy(row["target"])
+        response["conditions"][0]["evidence"] = "This text is absent from the source"
+        result = score_gemini_baseline(row, response)
+        self.assertEqual(result["status"], "error")
+        self.assertEqual(result["fn"], 1)
+        self.assertEqual(result["f1"], 0.0)
+
     def test_identical_predictions_have_identical_production_fusion_scores(self):
         row = request_row()
         gemini = copy.deepcopy(row["target"])

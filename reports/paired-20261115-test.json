@@ -105,7 +105,10 @@
         "test": 26
       }
     },
-    "productionModelUpdated": false
+    "productionModelUpdated": false,
+    "geminiBaselineUsesSharedInitialResponse": true,
+    "geminiBaselineAdditionalApiCalls": 0,
+    "offlineReplayedOutputs": 78
   },
   "aggregate": {
     "existing": {
@@ -165,6 +168,35 @@
       "recall": 0.5,
       "f1": 0.48000000000000004,
       "hardOmissionRate": 0.42857142857142855
+    },
+    "gemini": {
+      "tp": 9,
+      "fp": 17,
+      "fn": 15,
+      "expectedCount": 24,
+      "predictedCount": 26,
+      "hardExpected": 7,
+      "hardOmissions": 3,
+      "unresolvedExpected": 0,
+      "unresolvedPredicted": 1,
+      "unresolvedTP": 0,
+      "unresolvedFP": 1,
+      "unresolvedFN": 0,
+      "scheduleExpected": 2,
+      "schedulePredicted": 2,
+      "scheduleTP": 1,
+      "scheduleFP": 1,
+      "scheduleFN": 1,
+      "examples": 26,
+      "validOutputs": 25,
+      "invalidOutputs": 1,
+      "skipped": 0,
+      "comparableExamples": 26,
+      "nonComparableExamples": 0,
+      "precision": 0.34615384615384615,
+      "recall": 0.375,
+      "f1": 0.35999999999999993,
+      "hardOmissionRate": 0.42857142857142855
     }
   },
   "providerUsage": {
@@ -176,6 +208,11 @@
     "continued": {
       "both": 25,
       "single": 0,
+      "none": 1
+    },
+    "gemini": {
+      "both": 0,
+      "single": 25,
       "none": 1
     }
   },
@@ -309,6 +346,66 @@
             "requestId": "7692a9c5-2e9b-4489-b996-6033ad3da62d"
           },
           "fusionLatencyMs": 0.549,
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 1,
+          "hardOmissions": 1,
+          "hardOmissionRate": 1.0,
+          "missingHard": [
+            "위험한 암벽 코스"
+          ],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "e0ebbcb964e1f13edafd",
+          "sourceFamily": "source:kr-007",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "activity",
+                "target": "암벽 코스",
+                "polarity": "avoid",
+                "priority": "required",
+                "priorityBasis": "explicit",
+                "scope": "trip",
+                "audience": "group",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "아이와 함께라 위험한 암벽 코스는 절대 제외해 주세요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "15cee49b-232a-447a-9496-4cae0796d7a5"
+          },
           "tp": 0,
           "fp": 1,
           "fn": 1,
@@ -567,6 +664,78 @@
           "scheduleTP": 0,
           "scheduleFP": 0,
           "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "b2a2319c18099398c2fa",
+          "sourceFamily": "source:kr-022",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "meal_plan",
+                "target": "아침",
+                "polarity": "prefer",
+                "priority": "unspecified",
+                "priorityBasis": "unspecified",
+                "scope": "day",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": "숙소",
+                "unit": null,
+                "approximate": false,
+                "evidence": "아침은 숙소에서 먹고"
+              },
+              {
+                "dimension": "food",
+                "target": "현지 음식",
+                "polarity": "prefer",
+                "priority": "unspecified",
+                "priorityBasis": "unspecified",
+                "scope": "day",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "저녁에는 현지 음식을 찾고 싶어요"
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "b9fdf66e-0f34-4f38-8fe5-9e7db1cafeaf"
+          },
+          "tp": 0,
+          "fp": 2,
+          "fn": 2,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 2,
+          "predictedCount": 2,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
         }
       }
     },
@@ -652,6 +821,49 @@
             "requestId": "59f5b91b-8369-47a9-a028-299f5e2b051f"
           },
           "fusionLatencyMs": 0.3,
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "expectedCount": 0,
+          "predictedCount": 0,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "f007f3b2f3245ff06a4f",
+          "sourceFamily": "source:kr-053",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "32d3394b-a6d4-4f6c-a1a8-08cb1d61863a"
+          },
           "tp": 0,
           "fp": 0,
           "fn": 0,
@@ -787,6 +999,49 @@
           "unresolvedPredicted": 1,
           "unresolvedTP": 0,
           "unresolvedFP": 1,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "272dc5e160245046ff82",
+          "sourceFamily": "source:kr-055",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "9daa1bca-305a-4e6d-a910-b8444244e796"
+          },
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "expectedCount": 0,
+          "predictedCount": 0,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
           "unresolvedFN": 0,
           "scheduleExpected": 0,
           "schedulePredicted": 0,
@@ -934,6 +1189,61 @@
           "scheduleTP": 1,
           "scheduleFP": 0,
           "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "49393d860fd43354a76d",
+          "sourceFamily": "source:kr-056",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [],
+            "unresolved": [],
+            "scheduleItems": [
+              {
+                "id": "4f990cf6-6b40-499c-9e12-51ac42bb42c3",
+                "kind": "lodging",
+                "scope": "group",
+                "placeQuery": "단양 리조트",
+                "contentid": null,
+                "date": null,
+                "time": null,
+                "endDate": null,
+                "endTime": null
+              }
+            ]
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "2efc2857-35d3-468a-b4c8-a94b43bc02a1"
+          },
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "expectedCount": 0,
+          "predictedCount": 0,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 1,
+          "schedulePredicted": 1,
+          "scheduleTP": 0,
+          "scheduleFP": 1,
+          "scheduleFN": 1
         }
       }
     },
@@ -1053,6 +1363,61 @@
             "requestId": "853dbd42-9f2a-422a-8159-5f4af1e67f09"
           },
           "fusionLatencyMs": 0.513,
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "expectedCount": 0,
+          "predictedCount": 0,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 1,
+          "schedulePredicted": 1,
+          "scheduleTP": 1,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "fc5cdf4c59268a0de6d9",
+          "sourceFamily": "source:kr-062",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [],
+            "unresolved": [],
+            "scheduleItems": [
+              {
+                "id": "93d6eae0-00a4-4fe9-a072-9f5a738e9e1f",
+                "kind": "appointment",
+                "scope": "group",
+                "placeQuery": "청풍호 유람선",
+                "contentid": null,
+                "date": "2026-11-21",
+                "time": "15:00",
+                "endDate": null,
+                "endTime": null
+              }
+            ]
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "958bee02-8b1a-4fc2-ba5b-e659f5864ba6"
+          },
           "tp": 0,
           "fp": 0,
           "fn": 0,
@@ -1205,6 +1570,64 @@
             "requestId": "d519348f-de6a-4934-8403-e55c9926a2c9"
           },
           "fusionLatencyMs": 0.44,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "9875b8442907f717f8fa",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "민물 매운탕",
+                "polarity": "prefer",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "민물 매운탕을 먹어보고 싶어요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "d7976436-5604-442e-a328-627c63aa9619"
+          },
           "tp": 1,
           "fp": 0,
           "fn": 0,
@@ -1407,6 +1830,78 @@
           "scheduleTP": 0,
           "scheduleFP": 0,
           "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "b887aca134e3407f4e4a",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "지역 막걸리",
+                "polarity": "prefer",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "지역 막걸리와 전을 맛보고 싶네요."
+              },
+              {
+                "dimension": "food",
+                "target": "전",
+                "polarity": "prefer",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "지역 막걸리와 전을 맛보고 싶네요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "c7e91941-5647-452e-89ce-8112b08d9842"
+          },
+          "tp": 0,
+          "fp": 2,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 1,
+          "predictedCount": 2,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
         }
       }
     },
@@ -1537,6 +2032,64 @@
             "requestId": "8d0a9f27-0afa-4843-8e43-ed90b5d6a3ee"
           },
           "fusionLatencyMs": 0.679,
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "25dd189a3bf86931ab39",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "meal_plan",
+                "target": "죽",
+                "polarity": "prefer",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "day",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "아침에는 간단한 죽이 있으면 좋겠어요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "2286b898-a467-46bc-b77b-541dd2d3d370"
+          },
           "tp": 0,
           "fp": 1,
           "fn": 1,
@@ -1723,6 +2276,78 @@
           "scheduleTP": 0,
           "scheduleFP": 0,
           "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "629ee570290b0b9e70af",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "생선 요리",
+                "polarity": "prefer",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "저녁은 고기구이보다 생선 요리가 좋아요."
+              },
+              {
+                "dimension": "food",
+                "target": "고기구이",
+                "polarity": "avoid",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "저녁은 고기구이보다 생선 요리가 좋아요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "f1a7f510-d7af-420b-8f16-b3598334a89f"
+          },
+          "tp": 1,
+          "fp": 1,
+          "fn": 0,
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.6666666666666666,
+          "expectedCount": 1,
+          "predictedCount": 2,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
         }
       }
     },
@@ -1853,6 +2478,64 @@
             "requestId": "90455ee5-f67e-4fd0-a080-ab26dac3b423"
           },
           "fusionLatencyMs": 0.423,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "284825387f7e0c093286",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "두부 요리",
+                "polarity": "prefer",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "두부 요리를 찾아 주세요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "2e8d08a4-0689-426e-8083-d88be83ec5d7"
+          },
           "tp": 1,
           "fp": 0,
           "fn": 0,
@@ -2027,6 +2710,64 @@
           "scheduleTP": 0,
           "scheduleFP": 0,
           "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "9d6174978b017a64f0a2",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "튀김류",
+                "polarity": "avoid",
+                "priority": "unspecified",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "튀김류는 기름져서 먹지 않겠습니다."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "ff26ca0f-c5c7-48c0-bba5-94d82615be73"
+          },
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
         }
       }
     },
@@ -2179,6 +2920,64 @@
           "scheduleTP": 0,
           "scheduleFP": 0,
           "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "51d4ba6131b1a765bad1",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "돼지고기",
+                "polarity": "avoid",
+                "priority": "unspecified",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "돼지고기는 먹지 않아요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "4a7e48ca-3fa5-4973-bf44-cd06b13bc0f9"
+          },
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
         }
       }
     },
@@ -2253,6 +3052,37 @@
           "rawPrediction": null,
           "analysisMeta": {},
           "fusionLatencyMs": 0.413,
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 1,
+          "predictedCount": 0,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "4c43e3f2650404ce822e",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "error",
+          "errorType": "ProviderError",
+          "rawPrediction": null,
+          "analysisMeta": {},
           "tp": 0,
           "fp": 0,
           "fn": 1,
@@ -2427,6 +3257,64 @@
           "scheduleTP": 0,
           "scheduleFP": 0,
           "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "ac68a6e65bbd5bbfd355",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "간이 세지 않은 반찬",
+                "polarity": "prefer",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "간이 세지 않은 반찬을 선호합니다."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "cda9fcbc-c613-47b2-ac75-35438d7c9dbf"
+          },
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
         }
       }
     },
@@ -2557,6 +3445,64 @@
             "requestId": "8a8fa32c-3304-4be0-bbf3-68211661e1d8"
           },
           "fusionLatencyMs": 0.441,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "8602fb6a11d2cae08f1c",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "올갱이 요리",
+                "polarity": "prefer",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "올갱이 요리를 먹어보고 싶어요"
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "0b4cecee-5b09-4a6b-a44e-680ac21ade7d"
+          },
           "tp": 1,
           "fp": 0,
           "fn": 0,
@@ -2715,6 +3661,64 @@
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "f73d6162b4289cf0c8aa",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "차",
+                "polarity": "prefer",
+                "priority": "unspecified",
+                "priorityBasis": "unspecified",
+                "scope": "unspecified",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "커피보다 차를 마시는 편이에요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "66e8a459-76e4-4c78-9bae-6a3b8fc71c78"
+          },
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
           "expectedCount": 1,
           "predictedCount": 1,
           "hardExpected": 0,
@@ -2911,6 +3915,78 @@
           "scheduleTP": 0,
           "scheduleFP": 0,
           "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "16ce99dedb88e1fa698a",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "생선회",
+                "polarity": "avoid",
+                "priority": "unspecified",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "생선회는 빼고"
+              },
+              {
+                "dimension": "food",
+                "target": "익힌 생선 요리",
+                "polarity": "prefer",
+                "priority": "unspecified",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "익힌 생선 요리는 괜찮습니다"
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "92f210b5-1d1c-4aaf-8775-8ca2030d5baf"
+          },
+          "tp": 0,
+          "fp": 2,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 1,
+          "predictedCount": 2,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
         }
       }
     },
@@ -3041,6 +4117,64 @@
             "requestId": "ec367a5e-600f-400d-92f7-e7bfd8f6eb59"
           },
           "fusionLatencyMs": 0.497,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 1,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "e4bb75bce17ef0f26cba",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "계란",
+                "polarity": "avoid",
+                "priority": "required",
+                "priorityBasis": "explicit",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "계란 알레르기가 있으니 계란은 반드시 제외해 주세요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "2492fbf6-7b4d-4882-8f77-e77caea748a4"
+          },
           "tp": 1,
           "fp": 0,
           "fn": 0,
@@ -3231,6 +4365,72 @@
           "scheduleTP": 0,
           "scheduleFP": 0,
           "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "7d418f7ac21884e8ef9b",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "해산물",
+                "polarity": "avoid",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "새우를 못 먹어서 해산물 메뉴는 피하고 싶습니다."
+              }
+            ],
+            "unresolved": [
+              {
+                "code": "allergy_or_avoidance",
+                "evidence": "새우를 못 먹어서",
+                "message": "새우 섭취 불가에 대한 명시적 이유이나 구체적 선호 차원으로 분류하기 모호함"
+              }
+            ],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": true,
+            "requestId": "7d298d7f-8e1e-44eb-b046-95bc8c356dab"
+          },
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 1,
+          "hardOmissions": 1,
+          "hardOmissionRate": 1.0,
+          "missingHard": [
+            "새우 및 해산물 메뉴"
+          ],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 1,
+          "unresolvedTP": 0,
+          "unresolvedFP": 1,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
         }
       }
     },
@@ -3361,6 +4561,64 @@
             "requestId": "5c3e6e6e-60ed-4945-8f35-339e94d197c0"
           },
           "fusionLatencyMs": 0.55,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 1,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "f2bdd641145188a836cb",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "저염식",
+                "polarity": "prefer",
+                "priority": "required",
+                "priorityBasis": "explicit",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "저염식을 꼭 지켜야 해요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "71dddf8d-f0a5-4273-8b43-4c88e8481b59"
+          },
           "tp": 1,
           "fp": 0,
           "fn": 0,
@@ -3547,6 +4805,68 @@
           "scheduleTP": 0,
           "scheduleFP": 0,
           "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "97b77738e68ea88b3de4",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "지역 칼국수",
+                "polarity": "prefer",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": {
+                  "count": 1,
+                  "operator": "exact",
+                  "period": "trip"
+                },
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "한 번은 지역 칼국수를 먹어보고 싶어요"
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "84fd739b-5b26-491a-a6b1-950347a312de"
+          },
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
         }
       }
     },
@@ -3677,6 +4997,64 @@
             "requestId": "23d1c487-be4f-4fe6-8e0b-3c4e60f19588"
           },
           "fusionLatencyMs": 0.734,
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 0,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "60d5271f9795565be17d",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "과일",
+                "polarity": "prefer",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "day",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "매일 아침 과일을 먹고 싶어요"
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "45382b56-fc5c-4974-ae28-6d3a5f19f4fd"
+          },
           "tp": 0,
           "fp": 1,
           "fn": 1,
@@ -3843,6 +5221,70 @@
             "requestId": "1236bb11-6761-4f5d-8a14-904b72f8d622"
           },
           "fusionLatencyMs": 0.648,
+          "tp": 0,
+          "fp": 1,
+          "fn": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 1,
+          "hardOmissions": 1,
+          "hardOmissionRate": 1.0,
+          "missingHard": [
+            "커피"
+          ],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "90b288a65947f082c855",
+          "sourceFamily": "food-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "food",
+                "target": "커피",
+                "polarity": "limit",
+                "priority": "preferred",
+                "priorityBasis": "unspecified",
+                "scope": "day",
+                "audience": "unspecified",
+                "frequency": {
+                  "count": 2,
+                  "operator": "max",
+                  "period": "day"
+                },
+                "value": null,
+                "unit": "잔",
+                "approximate": false,
+                "evidence": "하루에 커피는 최대 2잔으로 하고 싶어요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "8b72ea59-40c1-4669-9717-2f9ff7c90c65"
+          },
           "tp": 0,
           "fp": 1,
           "fn": 1,
@@ -4061,6 +5503,78 @@
           "scheduleTP": 0,
           "scheduleFP": 0,
           "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "ad897052ad79234d1048",
+          "sourceFamily": "source:kr-182",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "activity",
+                "target": "박물관",
+                "polarity": "avoid",
+                "priority": "unspecified",
+                "priorityBasis": "unspecified",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "박물관은 가고 싶지 않아요."
+              },
+              {
+                "dimension": "activity",
+                "target": "전통 시장",
+                "polarity": "prefer",
+                "priority": "required",
+                "priorityBasis": "explicit",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "대신 전통 시장은 꼭 방문하고 싶어요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "0dea34e0-bfee-4246-be18-a3aed31bc011"
+          },
+          "tp": 1,
+          "fp": 1,
+          "fn": 1,
+          "precision": 0.5,
+          "recall": 0.5,
+          "f1": 0.5,
+          "expectedCount": 2,
+          "predictedCount": 2,
+          "hardExpected": 1,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
         }
       }
     },
@@ -4191,6 +5705,64 @@
             "requestId": "06285067-fd88-47b7-826f-64abf8c24ce8"
           },
           "fusionLatencyMs": 0.441,
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "expectedCount": 1,
+          "predictedCount": 1,
+          "hardExpected": 1,
+          "hardOmissions": 0,
+          "hardOmissionRate": 0.0,
+          "missingHard": [],
+          "unresolvedExpected": 0,
+          "unresolvedPredicted": 0,
+          "unresolvedTP": 0,
+          "unresolvedFP": 0,
+          "unresolvedFN": 0,
+          "scheduleExpected": 0,
+          "schedulePredicted": 0,
+          "scheduleTP": 0,
+          "scheduleFP": 0,
+          "scheduleFN": 0
+        },
+        "gemini": {
+          "recordId": "ecaa70c2af0e340242b9",
+          "sourceFamily": "additional-accessibility-loop",
+          "variant": "gemini",
+          "status": "ok",
+          "errorType": null,
+          "rawPrediction": {
+            "conditions": [
+              {
+                "dimension": "accessibility",
+                "target": "가파른 오르막",
+                "polarity": "avoid",
+                "priority": "required",
+                "priorityBasis": "explicit",
+                "scope": "trip",
+                "audience": "unspecified",
+                "frequency": null,
+                "value": null,
+                "unit": null,
+                "approximate": false,
+                "evidence": "가파른 오르막은 발목 부상 때문에 반드시 피해주세요."
+              }
+            ],
+            "unresolved": [],
+            "scheduleItems": []
+          },
+          "analysisMeta": {
+            "provider": "gemini",
+            "providersUsed": [
+              "gemini"
+            ],
+            "degraded": false,
+            "reviewRequired": false,
+            "requestId": "4d910385-2a93-4c62-936c-bbde7da9d881"
+          },
           "tp": 1,
           "fp": 0,
           "fn": 0,
