@@ -1,50 +1,78 @@
-# 충북 여행 AI 파서
+# 충북 여행 계획 · AI
 
-자유 입력 여행 메모와 고정 여행 조건을 받아 장소 검색 전 확인용 미리보기를 만드는 Python 패키지입니다. Gemini 응답은 `pending_review` 상태로 반환하며, 사용자 확인과 장소 검색·점수화는 이 패키지의 범위에 포함되지 않습니다.
+자유 입력 여행 메모를 구조화하고, 검증된 장소 후보로 일정 초안을 제안하는 **충북 단체여행 플래너의 Python AI 패키지**입니다. Gemini API와 로컬 Qwen을 사용하며, Qwen LoRA 학습·서빙·평가 도구를 함께 관리합니다.
 
-## Gemini + Qwen 취향 분석 v2
+## 프로젝트 개요
 
-`interpret_personal_draft_v2`는 사용자의 여행 요청과 여행방 기본조건을 Gemini API와 로컬 Qwen에 각각 전달합니다. 같은 장소라도 날짜와 대상이 다르면 별개 조건으로 다룹니다. 각 조건의 선호·회피, 필수 여부, 횟수, 적용 기간을 원문의 해당 구절과 대조해 합칩니다. 한 모델만 찾아낸 조건도 원문에서 뒷받침되면 반영합니다. 남은 충돌은 Gemini에 한 차례 재검토를 요청할 수 있고, 끝까지 판단하기 어려운 항목은 `unresolved`로 돌려줍니다.
+여행 요청에는 선호·회피·필수 조건·횟수·예약·시간 제한이 함께 들어갑니다. 이 저장소는 이를 사용자가 확인할 수 있는 조건으로 바꾸고, BE가 선별한 장소 안에서 방문 초안을 만듭니다.
 
-```python
-from chungbuk_trip_ai import interpret_personal_draft_v2
+AI 결과는 **확인 전 제안**입니다. 사용자 권한·원문/조건 버전·DB 저장·장소 선택·경로 최적화·실제 이동/시간/예산 검증은 BE가 담당합니다. 이 패키지 단독으로 확정 일정을 저장하지 않습니다.
 
-result = interpret_personal_draft_v2(original_text, conditions, provider="ensemble")
-```
+### 주요 기능
 
-BE는 기존 개인 취향 API의 `X-Preference-Schema: 2`로 사용합니다. 원문·조건 버전, 멱등성 영수증, 수동 수정과 개인 정보 공개 범위는 BE가 검증합니다. FE에서는 같은 입력 화면에서 조건을 수정·저장·직접 확정합니다. 걷기 제한이 없으면 AI가 숫자를 추측하거나 필수 추가 질문을 만들지 않습니다.
+| 기능 | 공개 함수·도구 | 결과와 경계 |
+| --- | --- | --- |
+| 취향 분석 v2 | `interpret_personal_draft_v2` | Gemini/Qwen의 원자 조건·예약/약속을 원문 근거로 검증·결합하고, 모호한 항목은 `unresolved`로 반환 |
+| 기존 취향 분석 | `interpret_personal_draft` | v1 호환 제안. 신규 v2와 계약을 구분 |
+| 여행 요청 미리보기 | `create_trip_preview`, `chungbuk-trip-preview` | 고정 여행 조건과 메모를 조합한 `pending_review` 결과 |
+| 후보 일정 초안 | `draft_candidate_itinerary`, `validate_candidate_itinerary` | 후보 ID·허용 날짜·중복·고정 위치 검사. 경로·시간·예산 검증은 별도 |
+| 호환용 태그 제안 | `normalize_confirmed_preferences` | 지원 태그 기반 검토 제안. 새 생성 흐름의 두 번째 필수 AI 단계로 사용하지 않음 |
+| 학습·평가·서빙 | `training`, `evaluation`, `serving` | Qwen LoRA, 출처별 데이터 분리, 고정 시험 비교, 로컬 HTTP 추론 |
 
-- 규격: [원자 조건 v2](docs/atomic-contract.md)
-- 데이터·학습·평가: [재현 절차](docs/reproducibility.md)
-- 모델 다운로드·제출 ZIP: [제출 자료 준비](docs/submission.md)
-- 사람이 나중에 채울 원문·정답: [TEAM_INPUTS.md](TEAM_INPUTS.md)
-- 브라우저 검수 범위: [화면 검수 기록](reports/ui/README.md)
-- 실제 학습·비교·실패: [실행 결과](reports/RESULTS.md)
-- Docker GPU 서빙 확인: [컨테이너 검증](reports/DOCKER_VERIFICATION.md)
-- 추후 PPT에 사용할 근거: [발표 메모](reports/PRESENTATION_NOTES.md)
+### 저장소 역할
 
-단체 취향의 필수 조건·개인별 제한·동등한 1인 기여·충돌 후보는 BE의 비공개 `groupConditions` 인수 자료에 보존합니다. 새 원자 조건의 장소 선택·날짜 배분·경로 최적화 적용은 일정 알고리즘 담당자의 후속 연동 범위입니다. 이 변경은 TOPTW·2-opt·relocate를 구현하거나 그 제약 준수를 보장하지 않습니다.
-
-### 여행방 Qwen 추가 학습 · 2026-11-15
-
-여행방의 Qwen3.5-4B에서 사용하던 LoRA 가중치를 읽어 새 후보를 학습했습니다. 모델과 학습 코드가 같은 어댑터를 읽었는지는 매니페스트 SHA-256으로 확인합니다. 옵티마이저는 새로 시작합니다. 검증 오차가 가장 낮았던 30단계의 가중치를 선택했으며, 이 실행은 새 모델을 배포하지 않습니다.
-
-| 자료 | 내용 |
+| 저장소 | 담당 |
 | --- | --- |
-| [학습·검증·시험 데이터](data/generated/preference-v2-review.jsonl) · [분할 기록](data/generated/preference-v2-review.manifest.json) | 원래 205건에 합성 학습 예시 12건을 추가했습니다. 학습 180건, 검증 11건, 시험 26건입니다. |
-| [데이터 작성 양식](data/preference-form.csv) · [작성 방법](data/README.md) | 원문, 기대 해석, 실제 출력, 점수와 의견을 구분합니다. 엑셀에서 작성한 점수는 학습 정답으로 사용하지 않습니다. |
-| [추가 학습 설정](configs/train-review.json) · [평가 기록](reports/continued-20261115.md) | 부모 어댑터, 데이터, 새 가중치의 식별값과 고정 시험 결과를 확인할 수 있습니다. |
+| [FE](https://github.com/woowangthon/WOOWANGTHON_TEAM_17_FE) | 원문 입력·해석 수정·직접 확정·공동 캔버스 |
+| [BE](https://github.com/woowangthon/WOOWANGTHON_TEAM_17_BE) | 권한·버전·저장, 장소 필터·점수, 경로 검증·일정 최적화 |
+| **이 저장소 · AI** | 자연어 해석·결합·초안 제안, 모델·데이터 재현 자료 |
 
-기반 모델을 고정 revision으로 준비하고 기존 여행방 어댑터를 `artifacts/training/full/adapter-best`에 복원한 뒤 다음을 실행합니다. 새 후보는 `artifacts/training/continued-20261115/adapter-best`에 저장합니다. Gemini는 추론과 충돌 재검토에 API로 참여합니다.
+## 기술 설계 및 선택 (ADR)
 
-```sh
-python -m training.validate_dataset --path data/generated/preference-v2-review.jsonl
-python -m training.train --config configs/train-review.json
+현재 구현과 [원자 조건 v2 계약](docs/atomic-contract.md), [재현 절차](docs/reproducibility.md)를 기준으로 정리합니다.
+
+| ADR | 선택 | 이유와 트레이드오프 |
+| --- | --- | --- |
+| AI-01 · 통합 방식 | Python 3.12+ 패키지, BE의 editable dependency | HTTP 게이트웨이를 별도로 두지 않고 함수를 재사용합니다. Gemini만 쓰는 실행에는 별도 AI 서버가 필요 없지만, Qwen 사용 시 모델 서비스가 필요합니다. |
+| AI-02 · 취향 표현 | 근거·방향·중요도·범위·횟수를 분리한 원자 조건 v2 | 단순 키워드로 잃기 쉬운 필수/선호·횟수·개인/일행 차이를 보존합니다. 현재 스키마로 확정할 수 없는 의미는 `unresolved`로 남으며 완전한 자연어 이해를 보장하지 않습니다. |
+| AI-03 · 모델 결합 | Gemini + Qwen 독립 병렬 분석, 근거 기반 필드 결합 | 공통 deadline 안에서 각 모델의 근거 있는 조건을 합칩니다. 남은 충돌은 Gemini에 최대 한 차례 재검토를 요청합니다. 호출 비용·GPU·지연이 늘고 결합이 항상 단독 모델보다 좋지는 않습니다. |
+| AI-04 · 장애 처리 | degraded 결과 + 선택적 strict 모드 | 하나의 유효 제공자만 남으면 `degraded=true`로 반환하며 `PREFERENCE_AI_STRICT=true`이면 실패합니다. 사용할 결과가 전혀 없으면 오류입니다. 모호한 걷기 제한을 숫자로 추측하거나 v2 필수 추가 질문을 만들지 않습니다. |
+| AI-05 · 로컬 모델 | 고정 revision의 Qwen3.5-4B + LoRA | 기반 모델 전체 대신 adapter를 학습·식별·배포합니다. 학습에 Torch/Transformers/PEFT와 GPU가 필요하고 모델·adapter 파일은 Git에 포함하지 않습니다. Gemini 자체를 학습하거나 두 모델을 스태킹 학습한 구조는 아닙니다. |
+| AI-06 · 일정 제안 | BE가 검증한 후보 ID와 일정 컨텍스트만 사용 | 모델의 임의 장소 생성을 막고 결과를 기계적으로 검사합니다. 결과는 `requiresReview=true`, 경로·시간·예산은 미검증이며 최종 최적화는 BE에 남습니다. |
+| AI-07 · 재현성과 품질 | 데이터 family별 분리, dev 기준 checkpoint, manifest/SHA-256, strict tuple 평가 | 학습·시험 출처와 가중치 동일성을 추적합니다. 합성 시험의 일치 점수는 사람 정확도·만족도·출시 준비도를 의미하지 않습니다. |
+
+## 아키텍처 다이어그램
+
+```mermaid
+flowchart TB
+    BE["BE · 권한과 입력 버전 확인"] --> Input["원문 + 공통 여행 조건"]
+    Input --> V2["취향 분석 v2"]
+    V2 --> Gemini["Gemini API · 독립 추출"]
+    V2 --> Qwen["로컬 Qwen HTTP · LoRA"]
+    Gemini --> Fusion["원문 근거 검사·필드 결합"]
+    Qwen --> Fusion
+    Fusion -->|"남은 충돌 · 최대 1회"| Review["Gemini 구조화 재검토"]
+    Review --> Result["원자 조건·unresolved·예약/약속"]
+    Fusion --> Result
+    Result --> Confirm["FE 직접 확인 → BE 저장·확정"]
+    BE --> Candidates["검증된 장소 후보·허용 날짜·고정 방문"]
+    Candidates --> Draft["Gemini 일정 초안 → ID/날짜/중복 검사"]
+    Draft --> Route["BE 실제 경로·시간·예산 검증·최적화"]
+    Data["출처·family로 분리한 데이터"] --> Train["Qwen LoRA 학습 · dev 선택"]
+    Train --> Adapter["adapter + manifest"]
+    Adapter --> Qwen
+    Adapter --> Eval["고정 test 평가·실행 보고서"]
 ```
 
-## 설치
+그림은 `ensemble` 모드를 나타냅니다. `gemini`·`qwen` 단독 모드도 지원합니다. 개인 취향 분석용 Qwen과 일정 초안용 Gemini의 역할은 구분됩니다.
 
-Python 3.12 이상을 사용합니다.
+## 실행 방법
+
+명령은 저장소 루트의 PowerShell 기준입니다. **기본 패키지 사용**, **Qwen 서빙**, **학습/평가**는 필요한 범위만 준비합니다.
+
+### 1. 기본 패키지 설치
+
+Python **3.12 이상**이 필요합니다. 기본 설치에는 GPU 라이브러리가 포함되지 않습니다.
 
 ```powershell
 py -3.12 -m venv .venv
@@ -53,78 +81,149 @@ python -m pip install -e .
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-AI 저장소 루트의 `.env`에 Google AI Studio 키를 입력합니다. `GEMINI_MODEL` 기본값은 `gemini-3.5-flash-lite`이며, 프로세스 환경변수의 `GEMINI_API_KEY`와 `GEMINI_MODEL`이 AI 저장소 `.env` 값보다 우선합니다. 이 패키지는 `.env` 전체를 프로세스 환경에 주입하지 않습니다.
+AI 루트의 개인 `.env`에 `GEMINI_API_KEY`를 설정합니다. `GEMINI_MODEL`의 코드 기본값은 `gemini-3.5-flash-lite`입니다. 모델 사용 가능 여부는 실제 계정/호출 환경에서 확인해야 합니다.
 
-## CLI
+| 설정 | 용도·적용 위치 |
+| --- | --- |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | 프로세스 환경이 AI 루트 `.env`보다 우선. BE 작업 디렉터리의 `.env`를 Gemini 설정 파일로 검색하지 않음 |
+| `PREFERENCE_AI_PROVIDER` | `gemini` / `qwen` / `ensemble`. 함수의 미지정 기본값은 `gemini`, 저장소 `.env.example`은 `ensemble` 예시 |
+| `QWEN_PREFERENCE_URL` | Qwen 추론 주소. 기본 `http://127.0.0.1:18117/v1/interpret` |
+| `PREFERENCE_AI_STRICT` | 일부 제공자 실패도 오류로 처리할지 선택. 기본 `false` |
+| `QWEN_MODEL_PATH`, `QWEN_MODEL_REVISION`, `QWEN_ADAPTER_PATH` | native 서빙의 기반 모델·고정 revision·adapter 경로 |
 
-JSON 파일을 지정하거나 stdin으로 JSON을 전달할 수 있습니다.
+Gemini 설정을 읽는 것만으로 `.env`의 다른 값까지 프로세스에 주입되지는 않습니다. **BE에서 호출할 때 provider/URL/strict는 BE `.env` 또는 실행 환경에 설정**합니다. native 서빙·평가 CLI는 AI `.env`를 읽습니다. Python에서 직접 호출할 때는 `provider="ensemble"`처럼 인수로 명시할 수도 있습니다.
+
+### 2. 여행 요청 미리보기 CLI
+
+Gemini 키가 준비된 기본 환경에서 실행합니다. 실제 API를 호출합니다.
 
 ```powershell
 chungbuk-trip-preview .\examples\trip_input.json
-Get-Content .\examples\trip_input.json -Raw | chungbuk-trip-preview
 ```
 
-입력에는 `dates.start`, `dates.end`, `transport`, `total_budget_won`, `departure.time`, `departure.region`, `headcount`, `preferences_text`가 필요합니다. `headcount`는 모임방에서 확정된 인원입니다. 출력은 추출 결과와 고정 조건을 포함한 미확정 미리보기입니다.
+[입력 예제](examples/trip_input.json)에는 `dates.start/end`, `transport`, `total_budget_won`, `departure.time/region`, `headcount`, `preferences_text`가 필요합니다. `headcount`는 모임방에서 확정한 인원이며 결과는 미확정 `pending_review` 상태입니다.
 
-## 백엔드 연결
+### 3. BE와 연결
 
-백엔드 개발환경에서는 이 패키지를 editable dependency로 설치합니다.
+BE 가상환경에 이 저장소를 설치합니다. 아래 명령은 **BE 루트**에서 실행합니다.
 
 ```powershell
-python -m pip install -e ..\WOOWANGTHON_TEAM_17_AI
+.\.venv\Scripts\python.exe -m pip install -e ..\WOOWANGTHON_TEAM_17_AI
 ```
 
-백엔드 코드는 다음과 같이 `chungbuk_trip_ai.create_trip_preview(data)`를 호출할 수 있습니다. 배포 환경은 패키지를 설치하고 Gemini 키를 프로세스 환경변수로 주입해야 합니다. 로컬 개발에서는 설정이 AI 저장소 루트 `.env`에서만 읽히므로, 백엔드 작업 디렉터리의 `.env`는 검색되지 않습니다. 설치된 패키지를 사용할 때는 AI 저장소 작업 트리의 editable 설치가 그 저장소 루트를 기준으로 `.env`를 찾습니다.
-
 ```python
-from chungbuk_trip_ai import create_trip_preview
+from chungbuk_trip_ai import interpret_personal_draft_v2, draft_candidate_itinerary
 
-preview = create_trip_preview(trip_input)
-```
+# original_text, conditions는 BE가 본인 권한·현재 버전을 확인한 입력입니다.
+result = interpret_personal_draft_v2(original_text, conditions, provider="ensemble")
 
-확정된 구성원 선호를 신뢰된 지원 태그 목록에 대응시키는 제안은 다음 공개 함수를 사용합니다.
-입력은 로컬 별칭(`p1` 등)과 확정된 선호 여섯 필드만 포함하며, 반환된 태그 제안은 모두
-`requiresReview=true`입니다. 이 함수는 저장·확정하지 않고, 태그 목록이 비었거나 분류할 텍스트가
-없으면 네트워크를 호출하지 않습니다.
-
-패키지 0.3.0의 이 함수는 `walking`을 기존 계약의 문자열 `"20"`, `"40"`, `"unlimited"` 또는 `null`로 받습니다. 분 제한은 장소 사이 개별 도보 구간 기준이며 출력 `maxMinutes`만 정수입니다. 지원 태그는 호출자가 검증한 최대 200개·각 80자 목록입니다. 실제 회원 ID·닉네임·`originalText`는 입력에 허용하지 않습니다.
-
-반환값은 `terms`, `unmapped`, `walking`, `conflictCandidates`, `needsReview`입니다. 중요도는 확정 입력에서 복사하고, 동일 태그의 선호·회피 대립을 검토용 충돌 후보로 묶습니다. 모델이 전체 문장을 근거로 인용해도 모든 의미가 태그에 반영됐다는 보장은 없으므로 각 확정 문장을 `unmapped`에 보존합니다. 제안이 있는 필드는 `coverage_unverified`, 제안이 없는 필드는 `uncovered`입니다. 개인 원문을 다시 해석하거나 자동으로 필터·점수·일정을 실행하지 않습니다.
-
-새 함수의 요청 크기는 최대 400,000바이트, 응답은 기존과 동일하게 256,000바이트, provider 요청 timeout은 60초입니다. 전체 deadline과 처리 중 버전 변경 검사는 호출 측 BE가 담당합니다.
-
-```python
-from chungbuk_trip_ai import normalize_confirmed_preferences
-
-normalization = normalize_confirmed_preferences(confirmed_preferences, supported_tags)
-```
-
-개인 취향 원문을 해석하려면 다음 공개 함수를 사용합니다. `conditions`는 호출 측에서 권한과 버전을 확인한 뒤 준비 계약의 Conditions JSON을 그대로 전달합니다. 함수는 DB 저장이나 확정을 하지 않습니다. `GeminiInvalidResponseError`, `GeminiUnavailableError`, `GeminiTimeoutError`는 모두 `GeminiError`의 하위 유형이며 BE adapter에서 각각 AI 응답 오류, 이용 불가, 시간 초과로 매핑할 수 있습니다.
-
-```python
-from chungbuk_trip_ai import interpret_personal_draft
-
-suggestion = interpret_personal_draft(original_text, conditions)
-```
-
-반환값은 `{"suggestions":{"likes":...,"avoid":...,"avoidImportance":...,"food":...,"foodImportance":...,"walking":...,"scheduleItems":[]},"needsWalkingAnswer":...}`입니다. 원문에서 걷기 시간과 걷기/도보 문맥의 명시 근거가 확인되지 않는 `walking` 제안은 `null`과 `needsWalkingAnswer=true`로 낮춥니다. 이 함수는 저장·준비 완료를 수행하지 않으며 실제 저장과 확인은 호출 측 BE/FE가 담당합니다.
-
-동일한 최초 분석 요청에서 실제 예약한 숙소와 고정 약속을 `scheduleItems`로 추출합니다. 각 항목은 `{id,kind:'lodging'|'appointment',scope:'personal'|'group'|null,placeQuery,contentid:null,date,time,endDate,endTime}`입니다. ID는 서버가 생성하며, DB 장소 연결과 본인 입력 보완은 BE가 처리합니다. 숙소 추천 요청은 예약으로 만들지 않습니다. 원문에서 확인되지 않은 날짜·오전/오후·범위는 null이며, 상대 날짜는 주어진 여행 날짜에만 연결합니다. 모델의 근거 문구는 내부 검증에만 쓰고 반환값에서 제거합니다. 체크인/체크아웃 시간이나 좌표를 추측하지 않습니다. 개인 일정이 그룹 일정으로 반영되는 정책은 BE에서 본인/방장 권한과 함께 검증합니다.
-
-새 일정 생성 흐름은 이 최초 분석 결과를 저장·준비 완료한 뒤 사용합니다. 아래 `normalize_confirmed_preferences`는 기존 호출자 호환을 위해 유지하며 새 준비 흐름의 두 번째 필수 AI 단계로 쓰지 않습니다. 계약 원본은 [여행 준비](https://app.notion.com/p/412e977e49088197b345d73603c6a27f)와 [일정 생성·공동 캔버스](https://app.notion.com/p/413e977e4908817a9af9ca9c7fa0ddee)입니다.
-
-## 후보 일정 초안
-
-`draft_candidate_itinerary(dates, candidates, fixed_visits=None, max_visits_per_day=8, schedule_context=None)`는 BE가 검증해 전달한 후보 장소만으로 일정 초안을 요청합니다. 후보 입력에는 `contentid`, `title`, `planningRole`, `adminCity`, `allowedDates`, `groupScore`가 필요하고 `coordinate`와 `estimatedStayMinutes`는 선택입니다. schedule_context에는 날짜별 시작·마감 시각, 출발·복귀 지점, 확인된 고정 일정의 시각을 전달할 수 있습니다. 모델이 식당을 빠뜨리면 후보 중 해당 날짜에 방문할 수 있는 식당을 보완합니다. 실제 경로 시간 검증은 BE가 담당합니다. `fixed_visits`는 날짜, 장소 ID, 0부터 시작하는 위치를 지정합니다.
-
-응답은 날짜별 `{date, contentids}`만 허용하며 모든 날짜, 후보 허용일, 중복 ID, 고정 방문 위치를 검증합니다. 결과는 항상 `requiresReview=true`, `routeVerified=false`, `timeVerified=false`, `budgetVerified=false`입니다. 이 함수는 경로·시간·예산을 계산하거나 결과를 저장하지 않습니다. `validate_candidate_itinerary(...)`는 동일한 검증을 provider 없이 적용합니다.
-
-```python
-from chungbuk_trip_ai import draft_candidate_itinerary
-
+# 후보 선정과 실제 이동 검증은 BE의 책임입니다.
 draft = draft_candidate_itinerary(dates, candidates, fixed_visits)
 ```
 
-## 요청 크기와 네트워크
+FE↔BE의 v2 개인 취향 API는 `X-Preference-Schema: 2`를 사용합니다. BE가 분석 영수증·원문 digest·조건/취향 버전·수동 수정·개인정보 공개 범위를 검증하며, 실제 준비 완료는 사용자 확인 뒤 수행합니다. 함수·DTO 상세는 [v2 계약](docs/atomic-contract.md)을 참고합니다.
 
-Gemini API 호출은 `generativelanguage.googleapis.com`으로 HTTPS 요청을 보내며 API 키는 헤더로 전달합니다. 기존 여행 미리보기 입력 요청은 24,000바이트, 개인 취향 해석은 원문/Conditions 길이를 수용하도록 64,000바이트, 일정 초안 요청은 최대 400,000바이트, 모든 읽기 응답은 256,000바이트로 제한합니다. 일정 초안 provider timeout은 60초, 최대 출력은 16,384 tokens이며 자동 재시도하지 않습니다. API 오류 본문이나 키는 사용자 표시 오류에 포함하지 않습니다. 실제 API 호출 없이 테스트하려면 저장소 루트에서 패키지 테스트를 실행합니다.
+### 4. Qwen 서빙 · 선택
+
+Qwen 또는 ensemble 모드에는 **기반 모델과 학습된 adapter**, NVIDIA GPU 서빙 환경이 필요합니다. 가중치는 체크아웃에 포함되지 않습니다.
+
+| 항목 | 기본값 |
+| --- | --- |
+| 기반 모델 | `Qwen/Qwen3.5-4B` |
+| 고정 revision | `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a` |
+| 모델 경로 | `artifacts/models/qwen3.5-4b-base` |
+| 기본 adapter 경로 | `artifacts/training/full/adapter-best` |
+| 서빙 포트 | `127.0.0.1:18117` |
+
+기반 모델 다운로드는 다음과 같습니다. adapter는 기존 검증 산출물을 복원하거나 아래 학습 절차로 별도 생성해야 합니다. 모델 다운로드만으로 서빙 준비가 끝나지는 않습니다.
+
+```powershell
+python -m pip install huggingface_hub
+python scripts/prepare_base.py
+```
+
+Docker와 NVIDIA GPU 사용이 준비되어 있다면:
+
+```powershell
+docker compose --profile serve build preference-qwen
+docker compose --profile serve up -d preference-qwen
+Invoke-RestMethod http://127.0.0.1:18117/ready
+```
+
+`/health`는 프로세스 응답, **`/ready`의 `ready=true`는 모델 준비 완료**를 뜻합니다. `/ready`의 모델/adapter 식별값도 확인합니다. 추론 경로는 `POST /v1/interpret`입니다. 기본 Compose는 loopback에만 포트를 공개하고 검증된 가중치를 읽기 전용으로 마운트합니다. 기반 모델만 쓰는 디버그는 명시적인 `QWEN_ALLOW_BASE_MODEL=true`가 필요합니다.
+
+native 실행은 [GPU 의존성·재현 안내](docs/reproducibility.md)에 따라 `requirements-serving.txt`와 필요한 커널을 설치한 뒤 `python -m serving.server`를 실행합니다. [Docker 검증 기록](reports/DOCKER_VERIFICATION.md)은 Linux GPU 서빙을 확인한 결과이며 컨테이너 전체 학습의 검증은 아닙니다.
+
+## 확인 방법과 학습 재현
+
+### 외부 API 없이 기본 검사
+
+활성화한 Python 환경에서 실행합니다.
+
+```powershell
+python -m unittest discover -s tests
+python -m training.validate_dataset --path data/generated/preference-v2.jsonl
+python -m training.validate_dataset --path data/generated/preference-v2-review.jsonl
+```
+
+단위 검사는 가짜 제공자로 계약·근거·충돌·일정·학습/패키징 도구를 검사합니다. Torch가 필요한 일부 검사는 미설치 시 skip될 수 있습니다. 실제 모델 품질·GPU 서빙·FE 브라우저 인수 검사는 별도입니다.
+
+### Qwen 학습 · GPU 환경에서 별도 실행
+
+고정 CUDA/Torch·Transformers·PEFT·커널 설치는 [재현 절차](docs/reproducibility.md)를 따릅니다. `requirements-training.txt`, `requirements-kernels.txt`, OS별 lock 파일로 실험 환경을 구분합니다.
+
+```powershell
+# 기본 데이터 검사 후 짧은 학습 실행
+python -m training.validate_dataset --path data/generated/preference-v2.jsonl
+python -m training.train --config configs/train-smoke.json
+
+# 전체 학습. 기존 산출물을 보존하려면 설정의 output_dir를 새 경로로 지정합니다.
+python -m training.train --config configs/train.json
+```
+
+학습은 assistant 응답 토큰에만 loss를 적용하고 dev loss로 adapter를 선택합니다. 모델 revision·데이터·설정·seed·가중치 식별값을 manifest에 기록하며 시험 split을 checkpoint 선택에 사용하지 않습니다. Smoke adapter는 제출용 전체 학습 결과로 인정하지 않습니다.
+
+2026-11-15 추가 학습은 [train-review 설정](configs/train-review.json)으로 기존 adapter에서 출발했습니다. 고정 합성 시험에서 새 Qwen 단독 F1이 낮아져 **기존 adapter로 복구한 기록**이 있으며, 새 후보를 기본 배포 모델로 간주하지 않습니다. [추가 학습 보고서](reports/continued-20261115.md)에 데이터 분할·30단계 선택·비교·한계를 정리했습니다.
+
+### 품질 평가·제출 자료
+
+```powershell
+python -m evaluation.run --config configs/evaluation.json
+python scripts/package_submission.py --dry-run
+```
+
+기본 평가 설정은 외부 제공자·Qwen HTTP 호출을 비활성화하지만, 로컬 기반/학습 모델 평가는 가중치와 GPU 의존성이 필요합니다. 전체 비교에는 단계별 `evaluation-local.json`, `evaluation-gemini.json`, `evaluation-ensemble.json`을 사용합니다. Gemini/ensemble 설정은 실제 제공자를 호출하므로 키·서비스·호출 예산을 확인합니다. 같은 GPU에서 로컬 평가와 서빙을 동시에 실행하지 않습니다.
+
+패키징 dry-run은 필수 가중치/manifest 누락이나 smoke-only adapter를 오류로 표시할 수 있습니다. 실제 ZIP 생성·출처·라이선스 범위는 [제출 자료 안내](docs/submission.md)를 따릅니다.
+
+## 확인된 범위와 한계
+
+- Windows CUDA LoRA 학습과 Linux Docker GPU 서빙은 각각 [실행 결과](reports/RESULTS.md), [Docker 검증](reports/DOCKER_VERIFICATION.md)에 기록되어 있습니다. 현재 환경의 준비 상태는 별도로 확인해야 합니다.
+- 합성 test의 정밀도·재현율·F1은 대상 표현·방향·중요도·범위·횟수 등의 **엄격한 구조 일치 지표**입니다. 사람의 정확도·만족도 지표가 아닙니다. 이전 결합 방식과 현재 필드 결합 결과도 구분합니다.
+- 공개 보고서의 사례와 작은 시험 집합만으로 운영 배포·사용자 품질을 보장하지 않습니다. 사람의 독립 정답과 인수 기준은 [TEAM_INPUTS.md](TEAM_INPUTS.md), [사람 데이터 안내](data/human/README.md)에 남아 있습니다.
+- 일정 제안은 항상 검토가 필요하며 `routeVerified=false`, `timeVerified=false`, `budgetVerified=false`입니다. 모델이 반환한 순서만으로 실제 경로·예약·예산 준수를 주장하지 않습니다.
+- Gemini 키는 HTTPS 헤더로 전달하고, 응답 크기·timeout을 제한합니다. API 오류 본문·키·개인 원문을 사용자 오류에 노출하지 않습니다. 요청별 제한과 데이터 처리 범위는 코드 및 상세 계약을 따릅니다.
+
+## 디렉터리 구조
+
+```text
+chungbuk_trip_ai/       공개 함수·Gemini·원자 조건·모델 결합·일정 초안
+training/              데이터 검증·LoRA 학습·메모리 배치
+serving/               Qwen HTTP 서버·가중치 검증
+evaluation/            제공자 비교·구조 일치 지표
+configs/               데이터·학습·평가·제출 설정
+data/                  합성 데이터·작성 양식·사람 자료 안내
+tests/                 계약·근거·결합·도구 자동 검사
+scripts/               모델 준비·통합 확인·제출 패키징
+docker/ / compose.yaml GPU 학습·서빙 프로필
+docs/                  v2 계약·재현·제출 절차
+reports/               실행·실패·검수·추가 학습 기록
+artifacts/             로컬 모델·adapter·실험 산출물 (Git 제외)
+```
+
+## 상세 문서
+
+- 설계·계약: [원자 조건 v2](docs/atomic-contract.md)
+- 데이터·학습: [재현 절차](docs/reproducibility.md), [데이터 작성 방법](data/README.md), [추가 학습 보고서](reports/continued-20261115.md)
+- 실행 근거: [학습·비교·실패](reports/RESULTS.md), [컨테이너 검증](reports/DOCKER_VERIFICATION.md), [화면 검수 범위](reports/ui/README.md)
+- 제출·인수: [제출 자료 준비](docs/submission.md), [팀 입력](TEAM_INPUTS.md), [사람 인수](reports/HUMAN_ACCEPTANCE.md), [발표 근거](reports/PRESENTATION_NOTES.md)
