@@ -2,6 +2,17 @@
 
 자유 입력 여행 메모를 구조화하고, 검증된 장소 후보로 일정 초안을 제안하는 **충북 단체여행 플래너의 Python AI 패키지**입니다. Gemini API와 로컬 Qwen을 사용하며, Qwen LoRA 학습·서빙·평가 도구를 함께 관리합니다.
 
+## 목차
+
+- [프로젝트 개요](#프로젝트-개요)
+- [기술 설계 및 선택 (ADR)](#기술-설계-및-선택-adr)
+- [아키텍처 다이어그램](#아키텍처-다이어그램)
+- [실행 방법](#실행-방법)
+- [확인 방법과 학습 재현](#확인-방법과-학습-재현)
+- [확인된 범위와 한계](#확인된-범위와-한계)
+- [디렉터리 구조](#디렉터리-구조)
+- [상세 문서](#상세-문서)
+
 ## 프로젝트 개요
 
 여행 요청에는 선호·회피·필수 조건·횟수·예약·시간 제한이 함께 들어갑니다. 이 저장소는 이를 사용자가 확인할 수 있는 조건으로 바꾸고, BE가 선별한 장소 안에서 방문 초안을 만듭니다.
@@ -112,12 +123,47 @@ BE 가상환경에 이 저장소를 설치합니다. 아래 명령은 **BE 루�
 ```
 
 ```python
-from chungbuk_trip_ai import interpret_personal_draft_v2, draft_candidate_itinerary
+from chungbuk_trip_ai import interpret_personal_draft_v2
 
-# original_text, conditions는 BE가 본인 권한·현재 버전을 확인한 입력입니다.
+original_text = "저는 숲길을 좋아해요. 얼마나 걸을 수 있을지는 모르겠어요."
+conditions = {"startDate": "2026-11-20", "endDate": "2026-11-21"}
 result = interpret_personal_draft_v2(original_text, conditions, provider="ensemble")
+```
 
-# 후보 선정과 실제 이동 검증은 BE의 책임입니다.
+`conditions`는 날짜 문맥만 담은 축약 예시입니다. 실제 BE에서는 본인 권한·현재 버전을 확인한 원문과 전체 공통 조건을 전달합니다. 다음은 가능한 출력의 일부이며, 식별자·digest·조건의 나머지 필드는 생략했습니다. 실제 모델 응답이 이 예시와 같음을 보장하지는 않습니다.
+
+```json
+{
+  "atomicPreferences": {
+    "conditions": [
+      {
+        "dimension": "activity",
+        "target": "숲길",
+        "polarity": "prefer",
+        "priority": "preferred",
+        "evidence": "저는 숲길을 좋아해요"
+      }
+    ],
+    "unresolved": [
+      {
+        "code": "walking_ambiguous",
+        "evidence": "얼마나 걸을 수 있을지는 모르겠어요",
+        "message": "걷기 허용량이 명확하지 않습니다."
+      }
+    ]
+  },
+  "needsWalkingAnswer": false
+}
+```
+
+숲길 선호는 조건으로, 불명확한 걷기 허용량은 숫자 추정 없이 `unresolved`로 남깁니다. 이 v2 결과에 필수 걷기 추가 질문을 요구하지 않습니다.
+
+후보 일정 초안은 별도로 요청합니다.
+
+```python
+from chungbuk_trip_ai import draft_candidate_itinerary
+
+# dates, candidates, fixed_visits는 BE가 검증해 전달하는 입력입니다.
 draft = draft_candidate_itinerary(dates, candidates, fixed_visits)
 ```
 
@@ -136,6 +182,8 @@ Qwen 또는 ensemble 모드에는 **기반 모델과 학습된 adapter**, NVIDIA
 | 서빙 포트 | `127.0.0.1:18117` |
 
 기반 모델 다운로드는 다음과 같습니다. adapter는 기존 검증 산출물을 복원하거나 아래 학습 절차로 별도 생성해야 합니다. 모델 다운로드만으로 서빙 준비가 끝나지는 않습니다.
+
+기존 adapter를 재사용하려면 팀에서 보관하는 학습 산출물과 `adapter-manifest.json`을 함께 받아 `artifacts/training/full/adapter-best`에 복원합니다. 공개 가중치 다운로드 링크는 이 저장소에 제공되어 있지 않습니다. 기존 산출물이 없다면 [학습 절차](#qwen-학습--gpu-환경에서-별도-실행)로 생성합니다. 서비스는 기반 모델 revision과 adapter manifest의 파일 체크섬을 검사하며, 복원 후 `/ready`의 모델·adapter 식별값을 [기존 실행 기록](reports/RESULTS.md)과 대조합니다. 산출물 구성은 [제출 자료 안내](docs/submission.md)를 참고합니다.
 
 ```powershell
 python -m pip install huggingface_hub
@@ -158,15 +206,16 @@ native 실행은 [GPU 의존성·재현 안내](docs/reproducibility.md)에 따�
 
 ### 외부 API 없이 기본 검사
 
-활성화한 Python 환경에서 실행합니다.
+활성화한 Python 환경에서 테스트용 `pytest`를 추가로 설치한 뒤 실행합니다. 기본 패키지 설치에는 테스트 러너가 포함되지 않습니다.
 
 ```powershell
-python -m unittest discover -s tests
+python -m pip install "pytest>=8,<10"
+python -m pytest -q
 python -m training.validate_dataset --path data/generated/preference-v2.jsonl
 python -m training.validate_dataset --path data/generated/preference-v2-review.jsonl
 ```
 
-단위 검사는 가짜 제공자로 계약·근거·충돌·일정·학습/패키징 도구를 검사합니다. Torch가 필요한 일부 검사는 미설치 시 skip될 수 있습니다. 실제 모델 품질·GPU 서빙·FE 브라우저 인수 검사는 별도입니다.
+`pytest`는 기존 `unittest.TestCase`와 함수형 결합 테스트를 함께 수집합니다. 단위 검사는 가짜 제공자로 계약·근거·충돌·일정·학습/패키징 도구를 검사합니다. Torch가 필요한 일부 검사는 미설치 시 skip될 수 있습니다. 실제 모델 품질·GPU 서빙·FE 브라우저 인수 검사는 별도입니다.
 
 ### Qwen 학습 · GPU 환경에서 별도 실행
 
